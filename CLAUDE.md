@@ -123,3 +123,27 @@ hyperhandler exec --signal signal.json --network testnet
 - Docstrings для публичных методов
 - Pydantic для валидации данных
 - async/await для HTTP операций
+
+### Versioning (Semantic Versioning 2.0.0)
+
+**После реализации нового функционала обновлять версию в `pyproject.toml` и `src/hyperhandler/__init__.py`:**
+
+Формат: `MAJOR.MINOR.PATCH`
+
+| Изменение | Действие | Пример |
+|-----------|----------|--------|
+| Breaking changes (несовместимые изменения API) | MAJOR++ | 0.1.0 → 1.0.0 |
+| Новый функционал (обратно совместимый) | MINOR++ | 0.1.0 → 0.2.0 |
+| Исправления багов | PATCH++ | 0.1.0 → 0.1.1 |
+
+**Pre-release версии:**
+- Alpha: `0.1.0-alpha.1`
+- Beta: `0.1.0-beta.1`
+- RC: `0.1.0-rc.1`
+
+**Правила:**
+- При MAJOR=0 — API нестабильный, breaking changes допустимы в MINOR
+- Сбрасывать PATCH при увеличении MINOR
+- Сбрасывать MINOR и PATCH при увеличении MAJOR
+
+Ссылка: https://semver.org/lang/ru/
