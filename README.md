@@ -1,36 +1,186 @@
 # hlhandler
 
-Hyperliquid trading handler CLI.
+CLI-сервис для автоматизации торговли на Hyperliquid DEX.
 
-## Installation
+## Возможности
+
+- Исполнение торговых сигналов (market/limit ордера)
+- Автоматическая установка Stop-Loss и Take-Profit
+- Поддержка Vault-трейдинга (копитрейдинг)
+- Работа с mainnet и testnet
+- Мониторинг позиций и ордеров
+- Безопасное хранение ключей (keyring)
+
+## Установка
 
 ```bash
+# Клонирование
+git clone <repository-url>
+cd hlhandler
+
+# Создание виртуального окружения
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Установка с dev-зависимостями
 pip install -e ".[dev]"
 ```
 
-## Configuration
+## Быстрый старт
 
-### Private Keys
+### 1. Настройка ключа
 
-Private keys can be configured in three ways (checked in order):
+```bash
+# Через системный keyring (рекомендуется)
+hlhandler config set-key --network testnet
 
-1. **Environment variables** (highest priority):
-   ```bash
-   export HL_MAINNET_PRIVATE_KEY="0x..."
-   # or
-   export HL_PRIVATE_KEY="0x..."  # fallback for any network
-   ```
+# Или через переменную окружения
+export HL_TESTNET_PRIVATE_KEY="0x..."
+```
 
-2. **System keyring**:
-   ```bash
-   hlhandler config set-key --network mainnet
-   ```
+### 2. Проверка конфигурации
 
-3. **Interactive prompt** (if running in a terminal)
+```bash
+hlhandler config check
+hlhandler config show-address
+```
 
-### Configuration file
+### 3. Исполнение сигнала
 
-Create `~/.hlhandler/config.yaml`:
+```bash
+# Создать файл сигнала
+cat > signal.json << 'EOF'
+{
+  "pair": "BTC",
+  "side": "long",
+  "order_type": "limit",
+  "entry_price": 67500.0,
+  "size": 0.1,
+  "leverage": 5,
+  "stop_loss": 66000.0,
+  "take_profit": 70000.0
+}
+EOF
+
+# Валидация
+hlhandler validate --signal signal.json
+
+# Исполнение
+hlhandler exec --signal signal.json --network testnet
+```
+
+## CLI команды
+
+### Торговля
+
+```bash
+# Исполнить сигнал
+hlhandler exec --signal signal.json [--network mainnet|testnet] [--vault 0x...]
+
+# Валидация без исполнения
+hlhandler validate --signal signal.json
+
+# Из stdin
+echo '{"pair":"BTC",...}' | hlhandler exec
+```
+
+### Мониторинг
+
+```bash
+# Статус аккаунта
+hlhandler status
+
+# Открытые позиции
+hlhandler positions
+
+# Открытые ордера
+hlhandler orders
+```
+
+### Управление ордерами
+
+```bash
+# Отменить по ID
+hlhandler cancel --order-id 123456
+
+# Отменить все для пары
+hlhandler cancel --pair BTC
+
+# Отменить все
+hlhandler cancel --all
+```
+
+### Vault операции
+
+```bash
+# Список публичных vaults
+hlhandler vaults list --min-tvl 100000 --min-apr 20
+
+# Детали vault
+hlhandler vaults info 0x...
+
+# Депозит/вывод
+hlhandler vaults deposit --vault 0x... --amount 1000
+hlhandler vaults withdraw --vault 0x... --shares 0.5
+
+# Мои позиции в vaults
+hlhandler vaults my-positions
+```
+
+### Конфигурация
+
+```bash
+# Сохранить ключ в keyring
+hlhandler config set-key --network mainnet
+
+# Удалить ключ
+hlhandler config remove-key --network mainnet
+
+# Показать адреса
+hlhandler config show-address
+
+# Проверить конфигурацию
+hlhandler config check
+```
+
+### Testnet
+
+```bash
+# Запросить тестовые средства
+hlhandler faucet --network testnet
+```
+
+## Формат сигнала
+
+```json
+{
+  "pair": "BTC",
+  "side": "long",
+  "order_type": "limit",
+  "entry_price": 67500.0,
+  "size": 0.1,
+  "leverage": 5,
+  "stop_loss": 66000.0,
+  "take_profit": 70000.0
+}
+```
+
+| Поле | Тип | Обязательное | Описание |
+|------|-----|--------------|----------|
+| `pair` | string | Да | Символ ассета (BTC, ETH, SOL) |
+| `side` | enum | Да | `long` или `short` |
+| `order_type` | enum | Да | `market` или `limit` |
+| `entry_price` | decimal | Для limit | Цена входа |
+| `size` | decimal | Да | Размер позиции |
+| `leverage` | int | Нет | Плечо (по умолчанию 5) |
+| `stop_loss` | decimal | Нет | Цена стоп-лосса |
+| `take_profit` | decimal | Нет | Цена тейк-профита |
+
+## Конфигурация
+
+### Файл конфигурации
+
+Расположение: `~/.hlhandler/config.yaml`
 
 ```yaml
 network: mainnet
@@ -39,27 +189,42 @@ trading:
   default_slippage: 0.01
   max_retries: 3
   retry_delay: 1.0
+
+security:
+  max_position_size_usd: 10000
+  max_leverage: 20
+  require_stop_loss: false
 ```
 
-## CLI Commands
+### Переменные окружения
+
+| Переменная | Описание |
+|------------|----------|
+| `HL_NETWORK` | Сеть по умолчанию |
+| `HL_PRIVATE_KEY` | Приватный ключ (для любой сети) |
+| `HL_MAINNET_PRIVATE_KEY` | Приватный ключ для mainnet |
+| `HL_TESTNET_PRIVATE_KEY` | Приватный ключ для testnet |
+
+## Разработка
 
 ```bash
-# Show help
-hlhandler --help
-
-# Configuration commands
-hlhandler config set-key --network mainnet    # Save key to keyring
-hlhandler config remove-key --network mainnet # Remove key from keyring
-hlhandler config show-address                 # Show wallet addresses
-hlhandler config check                        # Check provider status
-```
-
-## Development
-
-```bash
-# Install with dev dependencies
+# Установка dev-зависимостей
 pip install -e ".[dev]"
 
-# Run tests
+# Запуск тестов
 pytest tests/ -v
+
+# Только unit тесты
+pytest tests/unit/ -v
+
+# Только integration тесты
+pytest tests/integration/ -v
 ```
+
+## Архитектура
+
+См. [ARCHITECTURE.md](ARCHITECTURE.md)
+
+## Лицензия
+
+MIT

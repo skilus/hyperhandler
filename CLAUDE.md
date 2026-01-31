@@ -59,7 +59,46 @@ hlhandler exec --signal signal.json --network testnet
 - Config file: `~/.hlhandler/config.yaml`
 - Private key: `HL_PRIVATE_KEY` env var or system keyring
 
-## Git Conventions
+## Documentation
 
-- Do not add Co-Authored-By to commit messages
-- Keep commits atomic and descriptive
+- `README.md` — пользовательская документация, установка, использование
+- `ARCHITECTURE.md` — техническая архитектура, компоненты, потоки данных
+
+## Development Rules
+
+### Documentation Updates (IMPORTANT)
+
+**После любых изменений кода ОБЯЗАТЕЛЬНО обновлять документацию:**
+
+1. **README.md** — при изменении:
+   - CLI команд или их параметров
+   - Формата сигнала
+   - Конфигурации
+   - Процесса установки
+
+2. **ARCHITECTURE.md** — при изменении:
+   - Структуры проекта (новые файлы/модули)
+   - API клиентов
+   - Моделей данных
+   - Потоков данных
+   - Схемы подписи
+
+### Git Conventions
+
+- Не добавлять Co-Authored-By в commit messages
+- Атомарные коммиты с описательными сообщениями
+- Обновлять документацию в том же коммите, что и код
+
+### Testing
+
+- Запускать `pytest tests/ -v` перед коммитом
+- Добавлять тесты для нового функционала
+- Unit тесты в `tests/unit/`
+- Integration тесты в `tests/integration/`
+
+### Code Style
+
+- Type hints для всех функций
+- Docstrings для публичных методов
+- Pydantic для валидации данных
+- async/await для HTTP операций
