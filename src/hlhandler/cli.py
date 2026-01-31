@@ -69,7 +69,7 @@ def get_wallet_and_signer(network: str):
 
 def run_async(coro):
     """Run an async coroutine."""
-    return asyncio.get_event_loop().run_until_complete(coro)
+    return asyncio.run(coro)
 
 
 def version_callback(value: bool) -> None:
