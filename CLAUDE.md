@@ -97,6 +97,13 @@ hlhandler exec --signal signal.json --network testnet
    - Потоков данных
    - Схемы подписи
 
+3. **Claude Skill** (`.claude/skills/hlhandler/SKILL.md`) — при изменении:
+   - CLI команд или их параметров
+   - Структуры проекта
+   - Формата сигнала
+   - API эндпоинтов
+   - Примеров использования
+
 ### Git Conventions
 
 - Не добавлять Co-Authored-By в commit messages
