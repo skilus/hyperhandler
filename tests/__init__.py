@@ -1,1 +1,1 @@
-"""Tests for hlhandler."""
+"""Tests for hyperhandler."""

@@ -4,8 +4,8 @@ from decimal import Decimal
 
 import pytest
 
-from hlhandler.client import OrderBuilder
-from hlhandler.models import OrderSide, OrderType, TradingSignal
+from hyperhandler.client import OrderBuilder
+from hyperhandler.models import OrderSide, OrderType, TradingSignal
 
 
 @pytest.fixture

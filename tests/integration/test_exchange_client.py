@@ -6,9 +6,9 @@ import httpx
 import pytest
 import respx
 
-from hlhandler.client import ExchangeClient
-from hlhandler.models import OrderStatus, OrderType, TradingSignal, OrderSide
-from hlhandler.signer import Signer
+from hyperhandler.client import ExchangeClient
+from hyperhandler.models import OrderStatus, OrderType, TradingSignal, OrderSide
+from hyperhandler.signer import Signer
 
 
 TEST_PRIVATE_KEY = "0x" + "a" * 64

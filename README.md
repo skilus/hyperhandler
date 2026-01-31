@@ -1,4 +1,4 @@
-# hlhandler
+# hyperhandler
 
 CLI-сервис для автоматизации торговли на Hyperliquid DEX.
 
@@ -16,7 +16,7 @@ CLI-сервис для автоматизации торговли на Hyperli
 ```bash
 # Клонирование
 git clone <repository-url>
-cd hlhandler
+cd hyperhandler
 
 # Создание виртуального окружения
 python3 -m venv .venv
@@ -32,7 +32,7 @@ pip install -e ".[dev]"
 
 ```bash
 # Через системный keyring (рекомендуется)
-hlhandler config set-key --network testnet
+hyperhandler config set-key --network testnet
 
 # Или через переменную окружения
 export HL_TESTNET_PRIVATE_KEY="0x..."
@@ -41,8 +41,8 @@ export HL_TESTNET_PRIVATE_KEY="0x..."
 ### 2. Проверка конфигурации
 
 ```bash
-hlhandler config check
-hlhandler config show-address
+hyperhandler config check
+hyperhandler config show-address
 ```
 
 ### 3. Исполнение сигнала
@@ -63,10 +63,10 @@ cat > signal.json << 'EOF'
 EOF
 
 # Валидация
-hlhandler validate --signal signal.json
+hyperhandler validate --signal signal.json
 
 # Исполнение
-hlhandler exec --signal signal.json --network testnet
+hyperhandler exec --signal signal.json --network testnet
 ```
 
 ## CLI команды
@@ -75,99 +75,99 @@ hlhandler exec --signal signal.json --network testnet
 
 ```bash
 # Исполнить сигнал
-hlhandler exec --signal signal.json [--network mainnet|testnet] [--vault 0x...]
+hyperhandler exec --signal signal.json [--network mainnet|testnet] [--vault 0x...]
 
 # Валидация без исполнения
-hlhandler validate --signal signal.json
+hyperhandler validate --signal signal.json
 
 # Из stdin
-echo '{"pair":"BTC",...}' | hlhandler exec
+echo '{"pair":"BTC",...}' | hyperhandler exec
 ```
 
 ### Мониторинг
 
 ```bash
 # Статус аккаунта
-hlhandler status
+hyperhandler status
 
 # Открытые позиции
-hlhandler positions
+hyperhandler positions
 
 # Открытые ордера
-hlhandler orders
+hyperhandler orders
 ```
 
 ### Управление ордерами
 
 ```bash
 # Отменить по ID
-hlhandler cancel --order-id 123456
+hyperhandler cancel --order-id 123456
 
 # Отменить все для пары
-hlhandler cancel --pair BTC
+hyperhandler cancel --pair BTC
 
 # Отменить все
-hlhandler cancel --all
+hyperhandler cancel --all
 ```
 
 ### Vault операции
 
 ```bash
 # Список публичных vaults
-hlhandler vaults list --min-tvl 100000 --min-apr 20
+hyperhandler vaults list --min-tvl 100000 --min-apr 20
 
 # Детали vault
-hlhandler vaults info 0x...
+hyperhandler vaults info 0x...
 
 # Депозит/вывод
-hlhandler vaults deposit --vault 0x... --amount 1000
-hlhandler vaults withdraw --vault 0x... --shares 0.5
+hyperhandler vaults deposit --vault 0x... --amount 1000
+hyperhandler vaults withdraw --vault 0x... --shares 0.5
 
 # Мои позиции в vaults
-hlhandler vaults my-positions
+hyperhandler vaults my-positions
 ```
 
 ### Конфигурация
 
 ```bash
 # Сохранить ключ в keyring
-hlhandler config set-key --network mainnet
+hyperhandler config set-key --network mainnet
 
 # Удалить ключ
-hlhandler config remove-key --network mainnet
+hyperhandler config remove-key --network mainnet
 
 # Показать адреса
-hlhandler config show-address
+hyperhandler config show-address
 
 # Проверить конфигурацию
-hlhandler config check
+hyperhandler config check
 ```
 
 ### HD Wallet (Seed Phrase)
 
 ```bash
 # Сгенерировать новый seed phrase (12 или 24 слова)
-hlhandler wallet generate --words 12
-hlhandler wallet generate --words 24 --save  # сохранить в keyring
+hyperhandler wallet generate --words 12
+hyperhandler wallet generate --words 24 --save  # сохранить в keyring
 
 # Импортировать существующий seed phrase
-hlhandler wallet import --network testnet
+hyperhandler wallet import --network testnet
 
 # Показать derived адреса
-hlhandler wallet list --count 10
+hyperhandler wallet list --count 10
 
 # Получить приватный ключ для конкретного индекса
-hlhandler wallet use --index 0
+hyperhandler wallet use --index 0
 
 # Удалить seed phrase из keyring
-hlhandler wallet delete --network testnet
+hyperhandler wallet delete --network testnet
 ```
 
 ### Testnet
 
 ```bash
 # Запросить тестовые средства
-hlhandler faucet --network testnet
+hyperhandler faucet --network testnet
 ```
 
 ## Формат сигнала
@@ -200,7 +200,7 @@ hlhandler faucet --network testnet
 
 ### Файл конфигурации
 
-Расположение: `~/.hlhandler/config.yaml`
+Расположение: `~/.hyperhandler/config.yaml`
 
 ```yaml
 network: mainnet

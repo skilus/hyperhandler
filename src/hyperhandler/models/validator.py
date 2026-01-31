@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from decimal import Decimal
 
-from hlhandler.models.signal import TradingSignal
+from hyperhandler.models.signal import TradingSignal
 
 
 @dataclass

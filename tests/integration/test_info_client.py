@@ -6,7 +6,7 @@ import httpx
 import pytest
 import respx
 
-from hlhandler.client import AssetNotFoundError, InfoClient
+from hyperhandler.client import AssetNotFoundError, InfoClient
 
 
 @pytest.mark.integration

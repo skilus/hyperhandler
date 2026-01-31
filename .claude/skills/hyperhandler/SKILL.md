@@ -1,12 +1,12 @@
 ---
-name: hlhandler
-description: Work with hlhandler - CLI service for Hyperliquid DEX trading automation. Use when creating trading signals, validating orders, working with vaults, or modifying hlhandler code.
+name: hyperhandler
+description: Work with hyperhandler - CLI service for Hyperliquid DEX trading automation. Use when creating trading signals, validating orders, working with vaults, or modifying hyperhandler code.
 argument-hint: [command] [options]
 ---
 
-# hlhandler Development Skill
+# hyperhandler Development Skill
 
-Этот skill помогает работать с проектом hlhandler — CLI-сервисом для автоматизации торговли на Hyperliquid DEX.
+Этот skill помогает работать с проектом hyperhandler — CLI-сервисом для автоматизации торговли на Hyperliquid DEX.
 
 ## Документация проекта
 
@@ -17,7 +17,7 @@ argument-hint: [command] [options]
 ## Структура проекта
 
 ```
-src/hlhandler/
+src/hyperhandler/
 ├── cli.py              # Typer CLI commands
 ├── config.py           # YAML + env configuration
 ├── signer.py           # EIP-712 request signing
@@ -44,55 +44,55 @@ src/hlhandler/
 
 ```bash
 # Исполнить сигнал
-hlhandler exec --signal signal.json [--network mainnet|testnet] [--vault 0x...]
+hyperhandler exec --signal signal.json [--network mainnet|testnet] [--vault 0x...]
 
 # Валидация без исполнения
-hlhandler validate --signal signal.json
+hyperhandler validate --signal signal.json
 ```
 
 ### Мониторинг
 
 ```bash
-hlhandler status      # Статус аккаунта
-hlhandler positions   # Открытые позиции
-hlhandler orders      # Открытые ордера
+hyperhandler status      # Статус аккаунта
+hyperhandler positions   # Открытые позиции
+hyperhandler orders      # Открытые ордера
 ```
 
 ### Управление ордерами
 
 ```bash
-hlhandler cancel --order-id 123456  # Отменить по ID
-hlhandler cancel --pair BTC         # Отменить все для пары
-hlhandler cancel --all              # Отменить все
+hyperhandler cancel --order-id 123456  # Отменить по ID
+hyperhandler cancel --pair BTC         # Отменить все для пары
+hyperhandler cancel --all              # Отменить все
 ```
 
 ### Vault операции
 
 ```bash
-hlhandler vaults list --min-tvl 100000
-hlhandler vaults info 0x...
-hlhandler vaults deposit --vault 0x... --amount 1000
-hlhandler vaults withdraw --vault 0x... --shares 0.5
-hlhandler vaults my-positions
+hyperhandler vaults list --min-tvl 100000
+hyperhandler vaults info 0x...
+hyperhandler vaults deposit --vault 0x... --amount 1000
+hyperhandler vaults withdraw --vault 0x... --shares 0.5
+hyperhandler vaults my-positions
 ```
 
 ### HD Wallet (Seed Phrase)
 
 ```bash
-hlhandler wallet generate [--words 12|24] [--save]
-hlhandler wallet import --network testnet
-hlhandler wallet list [--count 5]
-hlhandler wallet use --index 0
-hlhandler wallet delete
+hyperhandler wallet generate [--words 12|24] [--save]
+hyperhandler wallet import --network testnet
+hyperhandler wallet list [--count 5]
+hyperhandler wallet use --index 0
+hyperhandler wallet delete
 ```
 
 ### Конфигурация
 
 ```bash
-hlhandler config set-key --network mainnet
-hlhandler config remove-key --network mainnet
-hlhandler config show-address
-hlhandler config check
+hyperhandler config set-key --network mainnet
+hyperhandler config remove-key --network mainnet
+hyperhandler config show-address
+hyperhandler config check
 ```
 
 ## Формат торгового сигнала
@@ -174,7 +174,7 @@ pytest tests/integration/ -v
 
 ## Задачи для Claude
 
-При работе с hlhandler:
+При работе с hyperhandler:
 
 1. **Изменения кода** — обновлять README.md и ARCHITECTURE.md
 2. **Новые команды** — добавлять в cli.py и документацию
@@ -199,13 +199,13 @@ cat > /tmp/signal.json << 'EOF'
 }
 EOF
 
-hlhandler validate --signal /tmp/signal.json
+hyperhandler validate --signal /tmp/signal.json
 ```
 
 ### Проверить статус testnet
 
 ```bash
 export HL_TESTNET_PRIVATE_KEY="0x..."
-hlhandler status --network testnet
-hlhandler positions --network testnet
+hyperhandler status --network testnet
+hyperhandler positions --network testnet
 ```

@@ -3,7 +3,7 @@
 from decimal import Decimal
 from typing import Any
 
-from hlhandler.models import OrderType, TradingSignal
+from hyperhandler.models import OrderType, TradingSignal
 
 
 class OrderBuilder:

@@ -3,11 +3,11 @@
 from decimal import Decimal
 from typing import Any
 
-from hlhandler.client.base import BaseClient
-from hlhandler.client.order_builder import OrderBuilder
-from hlhandler.config import NetworkConfig
-from hlhandler.models import OrderResult, OrderStatus, OrderType, TradingSignal
-from hlhandler.signer import Signer
+from hyperhandler.client.base import BaseClient
+from hyperhandler.client.order_builder import OrderBuilder
+from hyperhandler.config import NetworkConfig
+from hyperhandler.models import OrderResult, OrderStatus, OrderType, TradingSignal
+from hyperhandler.signer import Signer
 
 
 class ExchangeClient(BaseClient):

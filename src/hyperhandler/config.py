@@ -1,4 +1,4 @@
-"""Configuration management for hlhandler."""
+"""Configuration management for hyperhandler."""
 
 import os
 from pathlib import Path
@@ -52,7 +52,7 @@ class Settings(BaseSettings):
 class Config:
     """Main configuration class with YAML and environment support."""
 
-    DEFAULT_CONFIG_DIR = Path.home() / ".hlhandler"
+    DEFAULT_CONFIG_DIR = Path.home() / ".hyperhandler"
     DEFAULT_CONFIG_PATH = DEFAULT_CONFIG_DIR / "config.yaml"
 
     def __init__(self, config_path: Path | None = None):

@@ -4,7 +4,7 @@ from decimal import Decimal
 
 import pytest
 
-from hlhandler.models import (
+from hyperhandler.models import (
     OpenOrder,
     OrderResult,
     OrderSide,

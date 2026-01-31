@@ -6,8 +6,8 @@ import httpx
 import pytest
 import respx
 
-from hlhandler.client import LockupPeriodError, VaultClient, VaultNotFoundError
-from hlhandler.signer import Signer
+from hyperhandler.client import LockupPeriodError, VaultClient, VaultNotFoundError
+from hyperhandler.signer import Signer
 
 
 TEST_PRIVATE_KEY = "0x" + "a" * 64

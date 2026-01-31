@@ -1,1 +1,1 @@
-"""Integration tests for hlhandler."""
+"""Integration tests for hyperhandler."""

@@ -1,4 +1,4 @@
-"""Pytest fixtures for hlhandler tests."""
+"""Pytest fixtures for hyperhandler tests."""
 
 import os
 from decimal import Decimal
@@ -6,8 +6,8 @@ from unittest.mock import patch
 
 import pytest
 
-from hlhandler.models import OrderSide, OrderType, TradingSignal
-from hlhandler.wallet import WalletManager
+from hyperhandler.models import OrderSide, OrderType, TradingSignal
+from hyperhandler.wallet import WalletManager
 
 
 # Test private key (DO NOT use in production!)

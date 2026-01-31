@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import keyring
 from eth_account import Account
 
-from hlhandler.wallet.providers.base import KeyProvider
+from hyperhandler.wallet.providers.base import KeyProvider
 
 
 @dataclass
@@ -20,7 +20,7 @@ class KeyResult:
 Account.enable_unaudited_hdwallet_features()
 
 # Keyring service name for mnemonics
-MNEMONIC_SERVICE = "hlhandler-mnemonic"
+MNEMONIC_SERVICE = "hyperhandler-mnemonic"
 
 # Default derivation path (Ethereum standard BIP-44)
 DEFAULT_PATH = "m/44'/60'/0'/0"

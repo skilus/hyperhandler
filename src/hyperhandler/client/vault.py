@@ -3,10 +3,10 @@
 from decimal import Decimal
 from typing import Any
 
-from hlhandler.client.base import APIError, BaseClient
-from hlhandler.config import NetworkConfig
-from hlhandler.models import TradingSignal, VaultDetails, VaultInfo, VaultPosition
-from hlhandler.signer import Signer
+from hyperhandler.client.base import APIError, BaseClient
+from hyperhandler.config import NetworkConfig
+from hyperhandler.models import TradingSignal, VaultDetails, VaultInfo, VaultPosition
+from hyperhandler.signer import Signer
 
 
 class VaultNotFoundError(APIError):

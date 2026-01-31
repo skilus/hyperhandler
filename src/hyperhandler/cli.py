@@ -1,4 +1,4 @@
-"""CLI interface for hlhandler."""
+"""CLI interface for hyperhandler."""
 
 import asyncio
 import getpass
@@ -12,12 +12,12 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from hlhandler import __version__
-from hlhandler.config import NETWORKS, get_config
-from hlhandler.wallet import WalletManager
+from hyperhandler import __version__
+from hyperhandler.config import NETWORKS, get_config
+from hyperhandler.wallet import WalletManager
 
 app = typer.Typer(
-    name="hlhandler",
+    name="hyperhandler",
     help="Hyperliquid trading handler CLI",
     no_args_is_help=True,
 )
@@ -60,14 +60,14 @@ VaultOption = Annotated[
 
 def get_wallet_and_signer(network: str):
     """Get wallet manager and create signer."""
-    from hlhandler.signer import Signer
+    from hyperhandler.signer import Signer
 
     manager = WalletManager(allow_prompt=True)
     key_result = manager.get_private_key(network)
 
     if not key_result:
         console.print(f"[red]No private key configured for {network}[/red]")
-        console.print("Use 'hlhandler config set-key' or set HL_PRIVATE_KEY environment variable.")
+        console.print("Use 'hyperhandler config set-key' or set HL_PRIVATE_KEY environment variable.")
         raise typer.Exit(1)
 
     is_mainnet = network == "mainnet"
@@ -82,7 +82,7 @@ def run_async(coro):
 
 def version_callback(value: bool) -> None:
     if value:
-        console.print(f"hlhandler version {__version__}")
+        console.print(f"hyperhandler version {__version__}")
         raise typer.Exit()
 
 
@@ -116,10 +116,10 @@ def exec(
     ] = False,
 ) -> None:
     """Execute a trading signal."""
-    from hlhandler.client import ExchangeClient, InfoClient
-    from hlhandler.config import get_config
-    from hlhandler.models import SignalValidator, TradingSignal, ValidationConfig
-    from hlhandler.storage import get_storage
+    from hyperhandler.client import ExchangeClient, InfoClient
+    from hyperhandler.config import get_config
+    from hyperhandler.models import SignalValidator, TradingSignal, ValidationConfig
+    from hyperhandler.storage import get_storage
 
     # Read signal from file or stdin
     if signal_file:
@@ -130,8 +130,8 @@ def exec(
     else:
         if sys.stdin.isatty():
             console.print("[red]No signal file provided and stdin is empty[/red]")
-            console.print("Usage: hlhandler exec --signal signal.json")
-            console.print("   or: echo '{...}' | hlhandler exec")
+            console.print("Usage: hyperhandler exec --signal signal.json")
+            console.print("   or: echo '{...}' | hyperhandler exec")
             raise typer.Exit(1)
         signal_data = json.load(sys.stdin)
 
@@ -246,7 +246,7 @@ def validate(
     ],
 ) -> None:
     """Validate a trading signal without executing."""
-    from hlhandler.models import SignalValidator, TradingSignal
+    from hyperhandler.models import SignalValidator, TradingSignal
 
     if not signal_file.exists():
         console.print(f"[red]Signal file not found: {signal_file}[/red]")
@@ -281,7 +281,7 @@ def positions(
     vault: VaultOption = None,
 ) -> None:
     """Show open positions."""
-    from hlhandler.client import InfoClient
+    from hyperhandler.client import InfoClient
 
     _, signer = get_wallet_and_signer(network)
     network_config = NETWORKS[network]
@@ -331,7 +331,7 @@ def orders(
     vault: VaultOption = None,
 ) -> None:
     """Show open orders."""
-    from hlhandler.client import InfoClient
+    from hyperhandler.client import InfoClient
 
     _, signer = get_wallet_and_signer(network)
     network_config = NETWORKS[network]
@@ -373,7 +373,7 @@ def status(
     network: NetworkOption = "mainnet",
 ) -> None:
     """Show account status."""
-    from hlhandler.client import InfoClient
+    from hyperhandler.client import InfoClient
 
     _, signer = get_wallet_and_signer(network)
     network_config = NETWORKS[network]
@@ -420,7 +420,7 @@ def cancel(
     vault: VaultOption = None,
 ) -> None:
     """Cancel orders."""
-    from hlhandler.client import ExchangeClient, InfoClient
+    from hyperhandler.client import ExchangeClient, InfoClient
 
     if not order_id and not pair and not all_orders:
         console.print("[red]Specify --order-id, --pair, or --all[/red]")
@@ -474,7 +474,7 @@ def faucet(
         console.print("[red]Faucet is only available on testnet[/red]")
         raise typer.Exit(1)
 
-    from hlhandler.client.base import BaseClient
+    from hyperhandler.client.base import BaseClient
 
     _, signer = get_wallet_and_signer(network)
     network_config = NETWORKS[network]
@@ -517,7 +517,7 @@ def vaults_list(
     ] = 20,
 ) -> None:
     """List public vaults."""
-    from hlhandler.client import VaultClient
+    from hyperhandler.client import VaultClient
 
     network_config = NETWORKS[network]
 
@@ -565,7 +565,7 @@ def vaults_info(
     network: NetworkOption = "mainnet",
 ) -> None:
     """Show vault details."""
-    from hlhandler.client import VaultClient
+    from hyperhandler.client import VaultClient
 
     network_config = NETWORKS[network]
 
@@ -606,7 +606,7 @@ def vaults_deposit(
     network: NetworkOption = "mainnet",
 ) -> None:
     """Deposit to a vault."""
-    from hlhandler.client import VaultClient
+    from hyperhandler.client import VaultClient
 
     _, signer = get_wallet_and_signer(network)
     network_config = NETWORKS[network]
@@ -640,7 +640,7 @@ def vaults_withdraw(
     network: NetworkOption = "mainnet",
 ) -> None:
     """Withdraw from a vault."""
-    from hlhandler.client import VaultClient, LockupPeriodError
+    from hyperhandler.client import VaultClient, LockupPeriodError
 
     _, signer = get_wallet_and_signer(network)
     network_config = NETWORKS[network]
@@ -669,7 +669,7 @@ def vaults_my_positions(
     network: NetworkOption = "mainnet",
 ) -> None:
     """Show my positions in vaults."""
-    from hlhandler.client import VaultClient
+    from hyperhandler.client import VaultClient
 
     _, signer = get_wallet_and_signer(network)
     network_config = NETWORKS[network]
@@ -797,7 +797,7 @@ def show_address(
     console.print(table)
 
     if not found_any:
-        console.print("\n[yellow]No keys configured. Use 'hlhandler config set-key' or set HL_PRIVATE_KEY environment variable.[/yellow]")
+        console.print("\n[yellow]No keys configured. Use 'hyperhandler config set-key' or set HL_PRIVATE_KEY environment variable.[/yellow]")
 
 
 @config_app.command("check")
@@ -876,7 +876,7 @@ def wallet_generate(
     ] = False,
 ) -> None:
     """Generate a new HD wallet seed phrase."""
-    from hlhandler.wallet.providers.hd import HDWalletProvider
+    from hyperhandler.wallet.providers.hd import HDWalletProvider
 
     if words not in (12, 24):
         console.print("[red]Words must be 12 or 24[/red]")
@@ -912,7 +912,7 @@ def wallet_import(
     network: NetworkOption = "mainnet",
 ) -> None:
     """Import an existing seed phrase."""
-    from hlhandler.wallet.providers.hd import HDWalletProvider
+    from hyperhandler.wallet.providers.hd import HDWalletProvider
 
     console.print("[bold]Enter your seed phrase (12 or 24 words):[/bold]")
     mnemonic = getpass.getpass(prompt="Seed phrase: ")
@@ -952,13 +952,13 @@ def wallet_list(
     ] = 0,
 ) -> None:
     """List derived addresses from HD wallet."""
-    from hlhandler.wallet.providers.hd import HDWalletProvider
+    from hyperhandler.wallet.providers.hd import HDWalletProvider
 
     provider = HDWalletProvider()
 
     if not provider.has_key(network):
         console.print(f"[red]No HD wallet configured for {network}[/red]")
-        console.print("Use 'hlhandler wallet generate --save' or 'hlhandler wallet import'")
+        console.print("Use 'hyperhandler wallet generate --save' or 'hyperhandler wallet import'")
         raise typer.Exit(1)
 
     addresses = provider.list_addresses(network, count=count, start_index=start)
@@ -985,7 +985,7 @@ def wallet_use(
     network: NetworkOption = "mainnet",
 ) -> None:
     """Use a derived key from HD wallet (exports to env-compatible format)."""
-    from hlhandler.wallet.providers.hd import HDWalletProvider
+    from hyperhandler.wallet.providers.hd import HDWalletProvider
 
     provider = HDWalletProvider()
     result = provider.get_key(network, account_index=index)
@@ -1007,7 +1007,7 @@ def wallet_delete(
     network: NetworkOption = "mainnet",
 ) -> None:
     """Delete HD wallet seed phrase from keyring."""
-    from hlhandler.wallet.providers.hd import HDWalletProvider
+    from hyperhandler.wallet.providers.hd import HDWalletProvider
 
     provider = HDWalletProvider()
 

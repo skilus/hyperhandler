@@ -3,7 +3,7 @@
 import getpass
 import sys
 
-from hlhandler.wallet.providers.base import KeyProvider
+from hyperhandler.wallet.providers.base import KeyProvider
 
 
 class PromptKeyProvider(KeyProvider):

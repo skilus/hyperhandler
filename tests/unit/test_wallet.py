@@ -4,9 +4,9 @@ import os
 
 import pytest
 
-from hlhandler.utils import mask_key, normalize_private_key, validate_private_key
-from hlhandler.wallet import WalletManager
-from hlhandler.wallet.providers import EnvKeyProvider, KeyringProvider
+from hyperhandler.utils import mask_key, normalize_private_key, validate_private_key
+from hyperhandler.wallet import WalletManager
+from hyperhandler.wallet.providers import EnvKeyProvider, KeyringProvider
 
 
 class TestNormalizePrivateKey:
@@ -153,7 +153,7 @@ class TestWalletManager:
         assert result.provider == "environment"
 
     def test_get_key_from_keyring(self, wallet_manager, test_key, mock_keyring):
-        mock_keyring[("hlhandler", "private_key_mainnet")] = test_key
+        mock_keyring[("hyperhandler", "private_key_mainnet")] = test_key
 
         result = wallet_manager.get_private_key("mainnet")
         assert result is not None
@@ -165,7 +165,7 @@ class TestWalletManager:
         keyring_key = "0x" + "2" * 64
 
         os.environ["HL_MAINNET_PRIVATE_KEY"] = env_key
-        mock_keyring[("hlhandler", "private_key_mainnet")] = keyring_key
+        mock_keyring[("hyperhandler", "private_key_mainnet")] = keyring_key
 
         result = wallet_manager.get_private_key("mainnet")
         assert result.key == env_key
@@ -192,18 +192,18 @@ class TestWalletManager:
     def test_save_to_keyring(self, wallet_manager, test_key, mock_keyring):
         wallet_manager.save_to_keyring("mainnet", test_key)
 
-        assert mock_keyring[("hlhandler", "private_key_mainnet")] == test_key
+        assert mock_keyring[("hyperhandler", "private_key_mainnet")] == test_key
 
     def test_save_invalid_key_raises_error(self, wallet_manager):
         with pytest.raises(ValueError, match="Invalid private key"):
             wallet_manager.save_to_keyring("mainnet", "invalid")
 
     def test_remove_from_keyring(self, wallet_manager, test_key, mock_keyring):
-        mock_keyring[("hlhandler", "private_key_mainnet")] = test_key
+        mock_keyring[("hyperhandler", "private_key_mainnet")] = test_key
 
         result = wallet_manager.remove_from_keyring("mainnet")
         assert result is True
-        assert ("hlhandler", "private_key_mainnet") not in mock_keyring
+        assert ("hyperhandler", "private_key_mainnet") not in mock_keyring
 
     def test_check_providers(self, wallet_manager, test_key):
         os.environ["HL_MAINNET_PRIVATE_KEY"] = test_key

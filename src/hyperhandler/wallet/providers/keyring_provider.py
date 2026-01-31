@@ -3,7 +3,7 @@
 import keyring
 from keyring.errors import KeyringError
 
-from hlhandler.wallet.providers.base import KeyProvider
+from hyperhandler.wallet.providers.base import KeyProvider
 
 
 class KeyringProvider(KeyProvider):
@@ -13,7 +13,7 @@ class KeyringProvider(KeyProvider):
     Windows Credential Locker, Linux Secret Service).
     """
 
-    SERVICE_NAME = "hlhandler"
+    SERVICE_NAME = "hyperhandler"
 
     @property
     def name(self) -> str:

@@ -3,7 +3,7 @@
 import pytest
 import respx
 
-from hlhandler.config import NETWORKS
+from hyperhandler.config import NETWORKS
 
 
 @pytest.fixture

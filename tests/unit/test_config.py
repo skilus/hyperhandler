@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from hlhandler.config import Config, NETWORKS, Settings, get_config
+from hyperhandler.config import Config, NETWORKS, Settings, get_config
 
 
 @pytest.fixture

@@ -9,7 +9,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any, Generator
 
-from hlhandler.models import OrderResult, OrderStatus, TradingSignal
+from hyperhandler.models import OrderResult, OrderStatus, TradingSignal
 
 
 class DecimalEncoder(json.JSONEncoder):
@@ -22,9 +22,9 @@ class DecimalEncoder(json.JSONEncoder):
 
 
 class Storage:
-    """SQLite storage for hlhandler history."""
+    """SQLite storage for hyperhandler history."""
 
-    DEFAULT_PATH = Path.home() / ".hlhandler" / "history.db"
+    DEFAULT_PATH = Path.home() / ".hyperhandler" / "history.db"
 
     def __init__(self, db_path: Path | None = None):
         """Initialize storage.

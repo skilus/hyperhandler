@@ -4,11 +4,11 @@ from dataclasses import dataclass
 
 from eth_account import Account
 
-from hlhandler.utils import normalize_private_key, validate_private_key
-from hlhandler.wallet.providers.base import KeyProvider
-from hlhandler.wallet.providers.env import EnvKeyProvider
-from hlhandler.wallet.providers.keyring_provider import KeyringProvider
-from hlhandler.wallet.providers.prompt import PromptKeyProvider
+from hyperhandler.utils import normalize_private_key, validate_private_key
+from hyperhandler.wallet.providers.base import KeyProvider
+from hyperhandler.wallet.providers.env import EnvKeyProvider
+from hyperhandler.wallet.providers.keyring_provider import KeyringProvider
+from hyperhandler.wallet.providers.prompt import PromptKeyProvider
 
 
 @dataclass

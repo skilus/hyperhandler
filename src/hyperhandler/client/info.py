@@ -2,9 +2,9 @@
 
 from decimal import Decimal
 
-from hlhandler.client.base import AssetNotFoundError, BaseClient
-from hlhandler.config import NetworkConfig
-from hlhandler.models import OpenOrder, Position
+from hyperhandler.client.base import AssetNotFoundError, BaseClient
+from hyperhandler.config import NetworkConfig
+from hyperhandler.models import OpenOrder, Position
 
 
 class InfoClient(BaseClient):

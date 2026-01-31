@@ -1,4 +1,4 @@
-"""Utility functions for hlhandler."""
+"""Utility functions for hyperhandler."""
 
 import re
 

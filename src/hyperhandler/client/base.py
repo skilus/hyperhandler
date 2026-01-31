@@ -6,7 +6,7 @@ from typing import Any
 
 import httpx
 
-from hlhandler.config import NetworkConfig
+from hyperhandler.config import NetworkConfig
 
 
 class APIError(Exception):

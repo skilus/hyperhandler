@@ -2,7 +2,7 @@
 
 import os
 
-from hlhandler.wallet.providers.base import KeyProvider
+from hyperhandler.wallet.providers.base import KeyProvider
 
 
 class EnvKeyProvider(KeyProvider):

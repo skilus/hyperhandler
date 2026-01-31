@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from hlhandler.models import OrderResult, OrderSide, OrderStatus, OrderType, TradingSignal
-from hlhandler.storage import Storage
+from hyperhandler.models import OrderResult, OrderSide, OrderStatus, OrderType, TradingSignal
+from hyperhandler.storage import Storage
 
 
 @pytest.fixture

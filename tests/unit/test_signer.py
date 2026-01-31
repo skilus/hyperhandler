@@ -4,7 +4,7 @@ import time
 
 import pytest
 
-from hlhandler.signer import Signer, get_nonce
+from hyperhandler.signer import Signer, get_nonce
 
 
 # Test private key (DO NOT use in production!)
