@@ -26,7 +26,7 @@ src/hlhandler/
 ├── __init__.py              # Версия пакета
 ├── cli.py                   # Typer CLI, все команды
 ├── config.py                # Конфигурация (YAML + env)
-├── signer.py                # Подпись запросов (EIP-191)
+├── signer.py                # Подпись запросов (EIP-712)
 ├── storage.py               # SQLite хранилище
 ├── utils.py                 # Утилиты (валидация ключей)
 │
@@ -154,15 +154,48 @@ class TradingSignal(BaseModel):
 
 ```python
 class Signer:
-    def sign_action(action, nonce) -> payload
+    def __init__(private_key, is_mainnet=True)
+    def sign_action(action, nonce, vault_address, expires_after) -> payload
     def sign_action_for_vault(action, vault_address, nonce) -> payload
 ```
 
-Схема подписи:
-1. Сериализация action в canonical JSON
-2. Конкатенация с nonce
-3. SHA256 хэш
-4. EIP-191 personal_sign
+Схема подписи (Hyperliquid L1 Action):
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 1. ACTION HASH                                                  │
+│    msgpack(action) + nonce(8 bytes) + vault_flag + vault_addr   │
+│    → keccak256                                                  │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ 2. PHANTOM AGENT                                                │
+│    {                                                            │
+│      "source": "a" (mainnet) | "b" (testnet),                  │
+│      "connectionId": action_hash (bytes32)                      │
+│    }                                                            │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ 3. EIP-712 TYPED DATA                                           │
+│    domain: {name: "Exchange", version: "1", chainId: 1337}     │
+│    types: Agent(source: string, connectionId: bytes32)          │
+│    message: phantom_agent                                       │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ 4. SIGNATURE                                                    │
+│    eth_account.sign_message(encode_typed_data(full_message))    │
+│    → {r, s, v}                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+Защита от replay attacks:
+- **nonce**: timestamp в миллисекундах
+- **source**: "a" для mainnet, "b" для testnet — подписи не переносимы между сетями
 
 ### 5. Wallet (`wallet/`)
 
@@ -319,4 +352,4 @@ tests/
 
 1. **Хранение ключей**: приватные ключи в системном keychain или env vars, никогда в конфиге
 2. **Валидация сигналов**: проверка лимитов перед исполнением
-3. **Подпись**: каждый запрос подписывается, nonce предотвращает replay attacks
+3. **Подпись**: EIP-712 typed data signing, nonce (timestamp) предотвращает replay attacks, разные source для mainnet/testnet

@@ -63,7 +63,8 @@ def get_wallet_and_signer(network: str):
         console.print("Use 'hlhandler config set-key' or set HL_PRIVATE_KEY environment variable.")
         raise typer.Exit(1)
 
-    signer = Signer(key_result.key)
+    is_mainnet = network == "mainnet"
+    signer = Signer(key_result.key, is_mainnet=is_mainnet)
     return manager, signer
 
 

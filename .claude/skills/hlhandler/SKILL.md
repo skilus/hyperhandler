@@ -20,7 +20,7 @@ argument-hint: [command] [options]
 src/hlhandler/
 ├── cli.py              # Typer CLI commands
 ├── config.py           # YAML + env configuration
-├── signer.py           # EIP-191 request signing
+├── signer.py           # EIP-712 request signing
 ├── storage.py          # SQLite history storage
 ├── models/             # Pydantic models
 │   ├── signal.py       # TradingSignal

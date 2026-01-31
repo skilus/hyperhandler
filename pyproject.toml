@@ -12,6 +12,7 @@ dependencies = [
     "pyyaml>=6.0",
     "keyring>=24.0.0",
     "eth-account>=0.10.0",
+    "msgpack>=1.0.0",
 ]
 
 [project.optional-dependencies]
