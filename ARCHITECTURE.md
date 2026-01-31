@@ -52,6 +52,7 @@ src/hyperhandler/
         ├── __init__.py
         ├── base.py          # KeyProvider ABC
         ├── env.py           # EnvKeyProvider
+        ├── hd.py            # HDWalletProvider (BIP-39)
         ├── keyring_provider.py  # KeyringProvider
         └── prompt.py        # PromptKeyProvider
 ```
@@ -72,6 +73,7 @@ Typer-приложение с командами:
 | `cancel` | Отмена ордеров |
 | `faucet` | Запрос тестовых средств |
 | `config *` | Управление конфигурацией |
+| `wallet *` | HD wallet (seed phrase) |
 | `vaults *` | Операции с vaults |
 
 ### 2. Модели (`models/`)
@@ -213,7 +215,26 @@ Env → Keyring → Prompt
 |-----------|----------|
 | EnvKeyProvider | `HL_{NETWORK}_PRIVATE_KEY`, `HL_PRIVATE_KEY` |
 | KeyringProvider | Системный keychain |
+| HDWalletProvider | BIP-39 seed phrase → BIP-44 derivation |
 | PromptKeyProvider | Интерактивный ввод |
+
+#### HD Wallet
+
+```
+Seed Phrase (12/24 words)
+         │
+         ▼ BIP-39
+    Master Key
+         │
+         ▼ BIP-44: m/44'/60'/0'/0/{index}
+    Derived Keys (0, 1, 2, ...)
+```
+
+Команды:
+- `wallet generate` — создать новый seed phrase
+- `wallet import` — импортировать существующий
+- `wallet list` — показать derived адреса
+- `wallet use --index N` — получить ключ для индекса N
 
 ### 6. Storage (`storage.py`)
 
