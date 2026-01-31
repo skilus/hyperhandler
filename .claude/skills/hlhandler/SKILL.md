@@ -35,7 +35,7 @@ src/hlhandler/
 │   └── order_builder.py
 └── wallet/             # Key management
     ├── manager.py      # WalletManager
-    └── providers/      # Env, Keyring, Prompt
+    └── providers/      # Env, Keyring, Prompt, HD
 ```
 
 ## Команды
@@ -74,6 +74,16 @@ hlhandler vaults info 0x...
 hlhandler vaults deposit --vault 0x... --amount 1000
 hlhandler vaults withdraw --vault 0x... --shares 0.5
 hlhandler vaults my-positions
+```
+
+### HD Wallet (Seed Phrase)
+
+```bash
+hlhandler wallet generate [--words 12|24] [--save]
+hlhandler wallet import --network testnet
+hlhandler wallet list [--count 5]
+hlhandler wallet use --index 0
+hlhandler wallet delete
 ```
 
 ### Конфигурация

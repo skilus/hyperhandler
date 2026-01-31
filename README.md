@@ -143,6 +143,26 @@ hlhandler config show-address
 hlhandler config check
 ```
 
+### HD Wallet (Seed Phrase)
+
+```bash
+# Сгенерировать новый seed phrase (12 или 24 слова)
+hlhandler wallet generate --words 12
+hlhandler wallet generate --words 24 --save  # сохранить в keyring
+
+# Импортировать существующий seed phrase
+hlhandler wallet import --network testnet
+
+# Показать derived адреса
+hlhandler wallet list --count 10
+
+# Получить приватный ключ для конкретного индекса
+hlhandler wallet use --index 0
+
+# Удалить seed phrase из keyring
+hlhandler wallet delete --network testnet
+```
+
 ### Testnet
 
 ```bash

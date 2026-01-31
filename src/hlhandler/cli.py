@@ -36,6 +36,13 @@ vaults_app = typer.Typer(
 )
 app.add_typer(vaults_app, name="vaults")
 
+wallet_app = typer.Typer(
+    name="wallet",
+    help="HD wallet management (seed phrases)",
+    no_args_is_help=True,
+)
+app.add_typer(wallet_app, name="wallet")
+
 console = Console()
 
 
@@ -844,6 +851,175 @@ def check_config(
             console.print(f"  Active key from: [yellow]{result.provider}[/yellow]")
             console.print(f"  Address: [green]{result.address}[/green]")
         console.print()
+
+
+# =============================================================================
+# Helper Functions
+# =============================================================================
+
+
+# =============================================================================
+# Wallet Commands (HD Wallet / Seed Phrase)
+# =============================================================================
+
+
+@wallet_app.command("generate")
+def wallet_generate(
+    words: Annotated[
+        int,
+        typer.Option("--words", "-w", help="Number of words (12 or 24)"),
+    ] = 12,
+    network: NetworkOption = "mainnet",
+    save: Annotated[
+        bool,
+        typer.Option("--save", "-s", help="Save to keyring"),
+    ] = False,
+) -> None:
+    """Generate a new HD wallet seed phrase."""
+    from hlhandler.wallet.providers.hd import HDWalletProvider
+
+    if words not in (12, 24):
+        console.print("[red]Words must be 12 or 24[/red]")
+        raise typer.Exit(1)
+
+    provider = HDWalletProvider()
+    mnemonic = provider.generate_mnemonic(num_words=words)
+
+    console.print("\n[bold yellow]WARNING: Store this seed phrase securely![/bold yellow]")
+    console.print("[yellow]Anyone with this phrase can access your funds.[/yellow]\n")
+
+    console.print(f"[bold]Seed Phrase ({words} words):[/bold]")
+    console.print(f"[cyan]{mnemonic}[/cyan]\n")
+
+    # Show first few addresses
+    from eth_account import Account
+    Account.enable_unaudited_hdwallet_features()
+
+    console.print("[bold]Derived Addresses:[/bold]")
+    for i in range(3):
+        acc = Account.from_mnemonic(mnemonic, account_path=f"m/44'/60'/0'/0/{i}")
+        console.print(f"  [{i}] {acc.address}")
+
+    if save:
+        provider.save_mnemonic(network, mnemonic)
+        console.print(f"\n[green]Saved to keyring for {network}[/green]")
+    else:
+        console.print(f"\n[dim]Use --save to store in keyring for {network}[/dim]")
+
+
+@wallet_app.command("import")
+def wallet_import(
+    network: NetworkOption = "mainnet",
+) -> None:
+    """Import an existing seed phrase."""
+    from hlhandler.wallet.providers.hd import HDWalletProvider
+
+    console.print("[bold]Enter your seed phrase (12 or 24 words):[/bold]")
+    mnemonic = getpass.getpass(prompt="Seed phrase: ")
+
+    provider = HDWalletProvider()
+
+    if not provider.validate_mnemonic(mnemonic):
+        console.print("[red]Invalid seed phrase[/red]")
+        raise typer.Exit(1)
+
+    # Show addresses for confirmation
+    from eth_account import Account
+    Account.enable_unaudited_hdwallet_features()
+
+    console.print("\n[bold]Addresses from this seed:[/bold]")
+    for i in range(3):
+        acc = Account.from_mnemonic(mnemonic, account_path=f"m/44'/60'/0'/0/{i}")
+        console.print(f"  [{i}] {acc.address}")
+
+    if typer.confirm("\nSave this seed phrase?"):
+        provider.save_mnemonic(network, mnemonic)
+        console.print(f"[green]Saved to keyring for {network}[/green]")
+    else:
+        console.print("[yellow]Not saved[/yellow]")
+
+
+@wallet_app.command("list")
+def wallet_list(
+    network: NetworkOption = "mainnet",
+    count: Annotated[
+        int,
+        typer.Option("--count", "-c", help="Number of addresses to show"),
+    ] = 5,
+    start: Annotated[
+        int,
+        typer.Option("--start", "-s", help="Starting index"),
+    ] = 0,
+) -> None:
+    """List derived addresses from HD wallet."""
+    from hlhandler.wallet.providers.hd import HDWalletProvider
+
+    provider = HDWalletProvider()
+
+    if not provider.has_key(network):
+        console.print(f"[red]No HD wallet configured for {network}[/red]")
+        console.print("Use 'hlhandler wallet generate --save' or 'hlhandler wallet import'")
+        raise typer.Exit(1)
+
+    addresses = provider.list_addresses(network, count=count, start_index=start)
+
+    console.print(f"\n[bold]HD Wallet Addresses ({network})[/bold]")
+    console.print(f"Path: m/44'/60'/0'/0/{{index}}\n")
+
+    table = Table()
+    table.add_column("Index", style="dim")
+    table.add_column("Address", style="cyan")
+
+    for idx, addr in addresses:
+        table.add_row(str(idx), addr)
+
+    console.print(table)
+
+
+@wallet_app.command("use")
+def wallet_use(
+    index: Annotated[
+        int,
+        typer.Option("--index", "-i", help="Account index to use"),
+    ] = 0,
+    network: NetworkOption = "mainnet",
+) -> None:
+    """Use a derived key from HD wallet (exports to env-compatible format)."""
+    from hlhandler.wallet.providers.hd import HDWalletProvider
+
+    provider = HDWalletProvider()
+    result = provider.get_key(network, account_index=index)
+
+    if not result:
+        console.print(f"[red]No HD wallet configured for {network}[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"\n[bold]Account {index}[/bold]")
+    console.print(f"Address: [cyan]{result.address}[/cyan]")
+    console.print(f"\nTo use this account, set environment variable:")
+
+    env_var = f"HL_{network.upper()}_PRIVATE_KEY"
+    console.print(f"[dim]export {env_var}=\"{result.key}\"[/dim]")
+
+
+@wallet_app.command("delete")
+def wallet_delete(
+    network: NetworkOption = "mainnet",
+) -> None:
+    """Delete HD wallet seed phrase from keyring."""
+    from hlhandler.wallet.providers.hd import HDWalletProvider
+
+    provider = HDWalletProvider()
+
+    if not provider.has_key(network):
+        console.print(f"[yellow]No HD wallet found for {network}[/yellow]")
+        return
+
+    if typer.confirm(f"Delete HD wallet for {network}? This cannot be undone!"):
+        provider.delete_mnemonic(network)
+        console.print(f"[green]Deleted HD wallet for {network}[/green]")
+    else:
+        console.print("[yellow]Cancelled[/yellow]")
 
 
 # =============================================================================
