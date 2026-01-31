@@ -1,0 +1,16 @@
+# hlhandler configuration example
+# Copy this file to ~/.hlhandler/config.yaml
+
+# Network to use: mainnet or testnet
+network: mainnet
+
+# Trading settings
+trading:
+  # Default slippage tolerance (0.01 = 1%)
+  default_slippage: 0.01
+
+  # Maximum number of retries for failed requests
+  max_retries: 3
+
+  # Delay between retries in seconds
+  retry_delay: 1.0
