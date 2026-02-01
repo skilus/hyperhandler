@@ -53,7 +53,7 @@ class VaultClient(BaseClient):
         Returns:
             List of VaultInfo.
         """
-        result = await self._post("info", {"type": "vaults"})
+        result = await self._post("info", {"type": "vaultSummaries"})
 
         vaults = []
         for vault_data in result:

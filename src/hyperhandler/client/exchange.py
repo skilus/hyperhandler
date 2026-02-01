@@ -68,8 +68,8 @@ class ExchangeClient(BaseClient):
                 {
                     "a": asset_index,
                     "b": is_buy,
-                    "p": str(price),
-                    "s": str(size),
+                    "p": OrderBuilder._format_price(price),
+                    "s": OrderBuilder._format_size(size),
                     "r": reduce_only,
                     "t": {"limit": {"tif": tif}},
                 }
@@ -85,6 +85,7 @@ class ExchangeClient(BaseClient):
         asset_index: int,
         current_price: Decimal | None = None,
         vault_address: str | None = None,
+        sz_decimals: int = 0,
     ) -> list[OrderResult]:
         """Place orders from a trading signal.
 
@@ -93,6 +94,7 @@ class ExchangeClient(BaseClient):
             asset_index: Asset index from API.
             current_price: Current market price (required for market orders).
             vault_address: Optional vault address.
+            sz_decimals: Size decimals for the asset (affects price rounding).
 
         Returns:
             List of OrderResult for each order (entry, SL, TP).
@@ -101,6 +103,7 @@ class ExchangeClient(BaseClient):
             signal=signal,
             asset_index=asset_index,
             current_price=current_price,
+            sz_decimals=sz_decimals,
         )
 
         result = await self._execute_order(action, vault_address)

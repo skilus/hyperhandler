@@ -178,8 +178,10 @@ def exec(
     async def execute():
         async with InfoClient(network_config) as info_client:
             async with ExchangeClient(network_config, signer) as exchange_client:
-                # Get asset index
+                # Get asset index and info
                 asset_index = await info_client.get_asset_index(signal.pair)
+                asset_info = await info_client.get_asset_info(signal.pair)
+                sz_decimals = asset_info.get("szDecimals", 0)
 
                 # Get current price for market orders
                 current_price = None
@@ -197,6 +199,7 @@ def exec(
                     asset_index=asset_index,
                     current_price=current_price,
                     vault_address=vault,
+                    sz_decimals=sz_decimals,
                 )
 
                 return results

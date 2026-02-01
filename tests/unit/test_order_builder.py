@@ -123,7 +123,7 @@ class TestOrderBuilder:
         assert sl_order["b"] is False  # Sell to close long
         assert sl_order["r"] is True  # Reduce-only
         assert sl_order["t"]["trigger"]["tpsl"] == "sl"
-        assert sl_order["t"]["trigger"]["triggerPx"] == "66000.00000"
+        assert sl_order["t"]["trigger"]["triggerPx"] == "66000"
 
     def test_sl_for_short_position(self, builder):
         """U-BLD-06: SL for short position."""
@@ -156,7 +156,7 @@ class TestOrderBuilder:
         tp_order = payload["orders"][1]
         assert tp_order["b"] is False  # Sell to close long
         assert tp_order["t"]["trigger"]["tpsl"] == "tp"
-        assert tp_order["t"]["trigger"]["triggerPx"] == "70000.00000"
+        assert tp_order["t"]["trigger"]["triggerPx"] == "70000"
 
     def test_tp_for_short_position(self, builder):
         """U-BLD-08: TP for short position."""

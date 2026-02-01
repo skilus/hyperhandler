@@ -91,10 +91,9 @@ class Signer:
             "action": action,
             "nonce": nonce,
             "signature": signature,
+            "vaultAddress": vault_address,
+            "expiresAfter": expires_after,
         }
-
-        if vault_address:
-            payload["vaultAddress"] = vault_address
 
         return payload
 

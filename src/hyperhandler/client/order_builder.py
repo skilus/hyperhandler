@@ -1,6 +1,6 @@
 """Order builder for converting signals to API payloads."""
 
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
 from hyperhandler.models import OrderType, TradingSignal
@@ -8,6 +8,10 @@ from hyperhandler.models import OrderType, TradingSignal
 
 class OrderBuilder:
     """Builds order payloads from trading signals."""
+
+    # Default price decimals (6 for perps, 8 for spot)
+    DEFAULT_PERP_PRICE_DECIMALS = 6
+    DEFAULT_SPOT_PRICE_DECIMALS = 8
 
     def __init__(self, slippage: Decimal = Decimal("0.005")):
         """Initialize the order builder.
@@ -22,6 +26,7 @@ class OrderBuilder:
         signal: TradingSignal,
         asset_index: int,
         current_price: Decimal | None = None,
+        sz_decimals: int = 0,
     ) -> dict[str, Any]:
         """Build an order payload from a trading signal.
 
@@ -29,6 +34,7 @@ class OrderBuilder:
             signal: The trading signal.
             asset_index: The asset index from the API.
             current_price: Current market price (required for market orders).
+            sz_decimals: Size decimals for the asset (affects price rounding).
 
         Returns:
             Order action payload ready for signing.
@@ -36,7 +42,9 @@ class OrderBuilder:
         orders = []
 
         # Build entry order
-        entry_order = self._build_entry_order(signal, asset_index, current_price)
+        entry_order = self._build_entry_order(
+            signal, asset_index, current_price, sz_decimals
+        )
         orders.append(entry_order)
 
         # Build SL/TP orders if specified
@@ -64,6 +72,7 @@ class OrderBuilder:
         signal: TradingSignal,
         asset_index: int,
         current_price: Decimal | None = None,
+        sz_decimals: int = 0,
     ) -> dict[str, Any]:
         """Build the entry order."""
         is_buy = signal.is_buy
@@ -72,11 +81,8 @@ class OrderBuilder:
         if signal.is_market:
             if current_price is None:
                 raise ValueError("Current price required for market orders")
-            # Apply slippage
-            if is_buy:
-                price = current_price * (1 + self.slippage)
-            else:
-                price = current_price * (1 - self.slippage)
+            # Apply slippage and round to tick size
+            price = self._slippage_price(current_price, is_buy, sz_decimals)
             tif = "Ioc"  # Immediate-or-cancel for market orders
         else:
             if signal.entry_price is None:
@@ -112,6 +118,7 @@ class OrderBuilder:
         else:
             exec_price = signal.stop_loss * (1 - self.slippage)
 
+        # Key order matters for msgpack hashing!
         return {
             "a": asset_index,
             "b": is_buy,
@@ -120,8 +127,8 @@ class OrderBuilder:
             "r": True,  # Reduce-only
             "t": {
                 "trigger": {
-                    "triggerPx": self._format_price(signal.stop_loss),
                     "isMarket": True,
+                    "triggerPx": self._format_price(signal.stop_loss),
                     "tpsl": "sl",
                 }
             },
@@ -146,6 +153,7 @@ class OrderBuilder:
         else:
             exec_price = signal.take_profit * (1 - self.slippage)
 
+        # Key order matters for msgpack hashing!
         return {
             "a": asset_index,
             "b": is_buy,
@@ -154,8 +162,8 @@ class OrderBuilder:
             "r": True,  # Reduce-only
             "t": {
                 "trigger": {
-                    "triggerPx": self._format_price(signal.take_profit),
                     "isMarket": True,
+                    "triggerPx": self._format_price(signal.take_profit),
                     "tpsl": "tp",
                 }
             },
@@ -199,13 +207,73 @@ class OrderBuilder:
             "leverage": leverage,
         }
 
+    def _slippage_price(
+        self,
+        price: Decimal,
+        is_buy: bool,
+        sz_decimals: int,
+        is_spot: bool = False,
+    ) -> Decimal:
+        """Calculate price with slippage and proper rounding.
+
+        Follows the Hyperliquid SDK logic:
+        1. Apply slippage
+        2. Format to 5 significant figures
+        3. Round to (6 - szDecimals) decimal places for perps
+
+        Args:
+            price: Current market price.
+            is_buy: True for buy orders (add slippage).
+            sz_decimals: Size decimals for the asset.
+            is_spot: True for spot assets.
+
+        Returns:
+            Price with slippage, properly rounded for the API.
+        """
+        # Apply slippage
+        if is_buy:
+            px = price * (1 + self.slippage)
+        else:
+            px = price * (1 - self.slippage)
+
+        # Convert to float for 5 significant figures formatting
+        px_float = float(px)
+
+        # Format to 5 significant figures
+        sig_fig_str = f"{px_float:.5g}"
+        px_rounded = float(sig_fig_str)
+
+        # Calculate decimal places: 6 for perps, 8 for spot, minus szDecimals
+        max_decimals = (
+            self.DEFAULT_SPOT_PRICE_DECIMALS
+            if is_spot
+            else self.DEFAULT_PERP_PRICE_DECIMALS
+        )
+        decimal_places = max_decimals - sz_decimals
+
+        # Round to the appropriate number of decimal places
+        final_price = round(px_rounded, decimal_places)
+
+        return Decimal(str(final_price))
+
     @staticmethod
     def _format_price(price: Decimal) -> str:
-        """Format price for API."""
-        # Hyperliquid expects string prices
-        return str(price.quantize(Decimal("0.00001")))
+        """Format price for API.
+
+        Hyperliquid expects normalized string prices without trailing zeros.
+        E.g. "1700" not "1700.0" or "1700.00000"
+        """
+        # Round to 8 decimals, then normalize to remove trailing zeros
+        rounded = price.quantize(Decimal("0.00000001"))
+        normalized = rounded.normalize()
+        return f"{normalized:f}"
 
     @staticmethod
     def _format_size(size: Decimal) -> str:
-        """Format size for API."""
-        return str(size.quantize(Decimal("0.00001")))
+        """Format size for API.
+
+        Hyperliquid expects normalized string sizes without trailing zeros.
+        """
+        rounded = size.quantize(Decimal("0.00000001"))
+        normalized = rounded.normalize()
+        return f"{normalized:f}"
