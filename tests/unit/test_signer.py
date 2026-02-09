@@ -123,3 +123,30 @@ class TestSigner:
 
         # v should be 27 or 28
         assert sig["v"] in [27, 28]
+
+    def test_sign_action_with_expiration(self, signer):
+        """U-SGN-11: Sign action with expires_after parameter."""
+        action = {"type": "order", "orders": []}
+        nonce = int(time.time() * 1000)
+        expires = nonce + 60000  # 60 seconds from now
+
+        payload = signer.sign_action(action, nonce=nonce, expires_after=expires)
+
+        assert payload["expiresAfter"] == expires
+        assert payload["nonce"] == nonce
+        assert "signature" in payload
+
+    def test_sign_action_with_vault_and_expiration(self, signer):
+        """U-SGN-12: Sign action with both vault and expiration."""
+        action = {"type": "order", "orders": []}
+        vault = "0x1234567890123456789012345678901234567890"
+        nonce = int(time.time() * 1000)
+        expires = nonce + 60000
+
+        payload = signer.sign_action(
+            action, nonce=nonce, vault_address=vault, expires_after=expires
+        )
+
+        assert payload["vaultAddress"] == vault
+        assert payload["expiresAfter"] == expires
+        assert "signature" in payload

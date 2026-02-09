@@ -280,3 +280,20 @@ class TestOrderBuilder:
         """Market order without current_price raises error."""
         with pytest.raises(ValueError, match="Current price required"):
             builder.build_order_payload(long_market_signal, asset_index=1)
+
+    def test_limit_order_without_entry_price_fails(self, builder):
+        """U-BLD-18: Limit order without entry_price raises error."""
+        # This signal should fail validation in TradingSignal,
+        # but if somehow it gets through, OrderBuilder should catch it
+        signal = TradingSignal(
+            pair="BTC",
+            side=OrderSide.LONG,
+            order_type=OrderType.MARKET,  # Create as market first
+            size=Decimal("0.1"),
+        )
+        # Manually change to limit to bypass Pydantic validation
+        signal.order_type = OrderType.LIMIT
+        signal.entry_price = None
+
+        with pytest.raises(ValueError, match="Entry price required"):
+            builder.build_order_payload(signal, asset_index=0)

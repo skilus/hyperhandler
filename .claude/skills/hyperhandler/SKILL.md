@@ -8,6 +8,18 @@ argument-hint: [command] [options]
 
 Этот skill помогает работать с проектом hyperhandler — CLI-сервисом для автоматизации торговли на Hyperliquid DEX.
 
+## Основные возможности
+
+- ✅ Исполнение торговых сигналов (market/limit ордера)
+- ✅ Автоматическая установка Stop-Loss и Take-Profit
+- ✅ Vault-трейдинг (копитрейдинг)
+- ✅ HD Wallet с BIP-39/BIP-44 деривацией
+- ✅ Мониторинг позиций и ордеров
+- ✅ Безопасное хранение ключей (keyring + env vars)
+- ✅ SQLite история всех операций
+- ✅ EIP-712 подпись с защитой от replay attacks
+- ✅ Mainnet и Testnet поддержка
+
 ## Документация проекта
 
 - Обзор архитектуры: [ARCHITECTURE.md](../../../ARCHITECTURE.md)
@@ -95,6 +107,13 @@ hyperhandler config show-address
 hyperhandler config check
 ```
 
+### Testnet
+
+```bash
+# Запросить тестовые средства
+hyperhandler faucet --network testnet
+```
+
 ## Формат торгового сигнала
 
 ```json
@@ -123,10 +142,69 @@ hyperhandler config check
 
 ## Правила валидации сигнала
 
+### Базовые правила (Pydantic)
+
 1. `entry_price` обязателен для `limit` ордеров
 2. Stop-loss должен быть ниже entry для long, выше для short
 3. Take-profit должен быть выше entry для long, ниже для short
 4. Пара нормализуется к uppercase (BTC-USD → BTC)
+
+### Конфигурационные лимиты (SignalValidator)
+
+Проверяются из `~/.hyperhandler/config.yaml`:
+
+```yaml
+security:
+  max_position_size_usd: 10000    # Максимальный размер позиции в USD
+  max_leverage: 20                # Максимальное плечо
+  require_stop_loss: false        # Обязательность SL
+  allowed_pairs: []               # Whitelist пар (пусто = все)
+  min_order_size: null            # Минимальный размер ордера
+```
+
+## Конфигурация и хранение
+
+### Файл конфигурации
+
+`~/.hyperhandler/config.yaml`:
+
+```yaml
+network: mainnet
+
+trading:
+  default_slippage: 0.01
+  max_retries: 3
+  retry_delay: 1.0
+
+security:
+  max_position_size_usd: 10000
+  max_leverage: 20
+  require_stop_loss: false
+```
+
+### База данных
+
+`~/.hyperhandler/history.db` (SQLite):
+
+- **signals** — все принятые сигналы (JSON, validated, executed)
+- **orders** — все отправленные ордера (order_id, status, filled_size, error)
+
+### Переменные окружения
+
+```bash
+HL_NETWORK=mainnet              # Сеть по умолчанию
+HL_PRIVATE_KEY=0x...            # Ключ для любой сети
+HL_MAINNET_PRIVATE_KEY=0x...    # Ключ для mainnet
+HL_TESTNET_PRIVATE_KEY=0x...    # Ключ для testnet
+```
+
+## Безопасность
+
+1. **Приватные ключи**: хранятся в системном keyring или env vars, НИКОГДА в config.yaml
+2. **Валидация сигналов**: проверка лимитов перед исполнением (SignalValidator)
+3. **EIP-712 подпись**: typed data signing с nonce (timestamp)
+4. **Защита от replay**: разные `source` для mainnet ("a") и testnet ("b")
+5. **SQLite история**: все операции логируются для аудита
 
 ## Разработка
 
@@ -142,7 +220,17 @@ pytest tests/unit/ -v
 
 # Только integration тесты
 pytest tests/integration/ -v
+
+# E2E тесты (реальный testnet)
+pytest tests/ -v -m e2e
 ```
+
+### Маркеры pytest
+
+- `unit` — быстрые тесты без внешних зависимостей
+- `integration` — тесты с mocked HTTP (respx)
+- `e2e` — тесты на реальном testnet
+- `vault` — vault-related тесты
 
 ## Hyperliquid API
 
@@ -176,11 +264,13 @@ pytest tests/integration/ -v
 
 При работе с hyperhandler:
 
-1. **Изменения кода** — обновлять README.md и ARCHITECTURE.md
+1. **Изменения кода** — обновлять README.md, ARCHITECTURE.md и этот SKILL.md
 2. **Новые команды** — добавлять в cli.py и документацию
 3. **Новые модели** — добавлять в models/ с Pydantic валидацией
-4. **API клиенты** — наследовать от BaseClient
+4. **API клиенты** — наследовать от BaseClient (retry logic)
 5. **Тесты** — писать для каждого нового функционала
+6. **Версионирование** — обновлять версию в pyproject.toml и __init__.py (SemVer 2.0.0)
+7. **Коммиты** — без Co-Authored-By, с conventional commits (feat:, fix:, refactor:)
 
 ## Примеры использования
 
