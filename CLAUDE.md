@@ -66,6 +66,14 @@ hyperhandler exec --signal signal.json --network testnet
 
 ## Development Rules
 
+### Before Starting Big Features (IMPORTANT)
+
+**Перед началом реализации большой фичи:**
+
+1. Проверить `git status` — убедиться, что нет незакоммиченных изменений
+2. Если есть uncommitted changes — закоммитить или stash перед началом
+3. Это позволяет легко откатить изменения если что-то пойдёт не так
+
 ### Planning Process (IMPORTANT)
 
 **После этапа планирования:**
