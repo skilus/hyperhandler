@@ -88,6 +88,34 @@ hyperhandler exec --signal signal.json --network testnet
 3. **Не приступать к реализации до подтверждения пользователя**
 4. После подтверждения — переименовать `draft-*.md` в `*.md`
 
+### Spec Template
+
+```markdown
+# Feature Name
+
+**Version:** v0.1 (draft) | v1.0 (approved) | v1.0 (implemented)
+**Spec ID:** SPEC-NNN
+**Created:** YYYY-MM-DD HH:MM
+**Work Started:** YYYY-MM-DD HH:MM (заполняется при начале реализации)
+**Work Completed:** YYYY-MM-DD HH:MM (заполняется по завершении)
+
+---
+
+## Цель
+...
+
+## Файлы
+...
+
+## Критерии приёмки
+...
+```
+
+**Правила заполнения дат:**
+- `Created` — дата/время создания черновика спеки
+- `Work Started` — заполняется при переходе к реализации (после approval)
+- `Work Completed` — заполняется после прохождения всех критериев приёмки
+
 ### Documentation Updates (IMPORTANT)
 
 **После любых изменений кода ОБЯЗАТЕЛЬНО обновлять документацию:**
