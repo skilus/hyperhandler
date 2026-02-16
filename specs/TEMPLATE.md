@@ -1,5 +1,13 @@
 # [Feature Name]
 
+**Version:** v0.1 (draft)
+**Spec ID:** SPEC-NNN
+**Created:** YYYY-MM-DD HH:MM
+**Work Started:** YYYY-MM-DD HH:MM (заполняется при начале реализации)
+**Work Completed:** YYYY-MM-DD HH:MM (заполняется по завершении)
+
+---
+
 ## Цель
 
 Краткое описание цели изменений.

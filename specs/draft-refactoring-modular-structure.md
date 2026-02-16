@@ -2,7 +2,7 @@
 
 **Version:** v0.1 (draft)
 **Spec ID:** SPEC-004
-**Date:** 2026-02-16
+**Created:** 2026-02-16 19:00
 
 ---
 

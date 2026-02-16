@@ -186,3 +186,81 @@ class TestAppVersion:
         assert result.exit_code == 0
         # Version should be displayed
         assert len(result.stdout) > 0
+
+
+class TestRiskCommands:
+    """Tests for risk management CLI commands."""
+
+    def test_risk_help(self, runner):
+        """CLI-RISK-01: risk --help shows available commands."""
+        result = runner.invoke(app, ["risk", "--help"])
+
+        assert result.exit_code == 0
+        assert "check" in result.stdout
+        assert "status" in result.stdout
+        assert "reset" in result.stdout
+
+    def test_risk_check_missing_signal(self, runner):
+        """CLI-RISK-02: risk check requires --signal."""
+        result = runner.invoke(app, ["risk", "check"])
+
+        # Should fail due to missing required option
+        assert result.exit_code != 0
+
+    def test_risk_check_invalid_risk_level(self, runner, tmp_path):
+        """CLI-RISK-03: risk check rejects invalid risk level."""
+        signal = {
+            "pair": "BTC",
+            "side": "long",
+            "order_type": "market",
+            "size": 0.1,
+            "leverage": 5,
+        }
+        file_path = tmp_path / "signal.json"
+        file_path.write_text(json.dumps(signal))
+
+        result = runner.invoke(
+            app,
+            ["risk", "check", "--signal", str(file_path), "--risk-level", "invalid"],
+        )
+
+        assert result.exit_code != 0
+        assert "invalid" in result.stdout.lower()
+
+    def test_risk_check_signal_not_found(self, runner):
+        """CLI-RISK-04: risk check fails for non-existent signal file."""
+        result = runner.invoke(
+            app,
+            ["risk", "check", "--signal", "/nonexistent/signal.json"],
+        )
+
+        assert result.exit_code != 0
+        assert "not found" in result.stdout.lower()
+
+    def test_exec_with_risk_level_invalid(self, runner, valid_signal_json):
+        """CLI-RISK-05: exec --risk-level rejects invalid level."""
+        result = runner.invoke(
+            app,
+            [
+                "exec",
+                "--signal",
+                str(valid_signal_json),
+                "--risk-level",
+                "ultra",
+                "--dry-run",
+            ],
+        )
+
+        assert result.exit_code != 0
+        assert "invalid" in result.stdout.lower()
+
+
+class TestExecWithRiskLevel:
+    """Tests for exec command with --risk-level flag."""
+
+    def test_exec_risk_level_option_exists(self, runner):
+        """CLI-EXEC-RISK-01: exec has --risk-level option."""
+        result = runner.invoke(app, ["exec", "--help"])
+
+        assert result.exit_code == 0
+        assert "--risk-level" in result.stdout or "-r" in result.stdout

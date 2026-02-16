@@ -36,6 +36,13 @@ vaults_app = typer.Typer(
 )
 app.add_typer(vaults_app, name="vaults")
 
+risk_app = typer.Typer(
+    name="risk",
+    help="Risk management commands",
+    no_args_is_help=True,
+)
+app.add_typer(risk_app, name="risk")
+
 wallet_app = typer.Typer(
     name="wallet",
     help="HD wallet management (seed phrases)",
@@ -102,6 +109,16 @@ def main(
 # =============================================================================
 
 
+RiskLevelOption = Annotated[
+    str | None,
+    typer.Option(
+        "--risk-level",
+        "-r",
+        help="Risk level (low/medium/high). Enables managed risk mode.",
+    ),
+]
+
+
 @app.command()
 def exec(
     signal_file: Annotated[
@@ -114,11 +131,14 @@ def exec(
         bool,
         typer.Option("--dry-run", help="Validate only, don't execute"),
     ] = False,
+    risk_level: RiskLevelOption = None,
 ) -> None:
     """Execute a trading signal."""
     from hyperhandler.client import ExchangeClient, InfoClient
     from hyperhandler.config import get_config
     from hyperhandler.models import SignalValidator, TradingSignal, ValidationConfig
+    from hyperhandler.models.risk import RiskLevel, RiskMode, RiskReject
+    from hyperhandler.risk import RiskManager
     from hyperhandler.storage import get_storage
 
     # Read signal from file or stdin
@@ -162,21 +182,56 @@ def exec(
     for warning in result.warnings:
         console.print(f"[yellow]Warning: {warning}[/yellow]")
 
-    if dry_run:
-        console.print("[green]Signal validated successfully (dry run)[/green]")
-        _print_signal_summary(signal)
-        raise typer.Exit(0)
+    # Determine risk mode (validate early before wallet)
+    if risk_level:
+        try:
+            level = RiskLevel(risk_level.lower())
+        except ValueError:
+            console.print(f"[red]Invalid risk level: {risk_level}. Use low/medium/high.[/red]")
+            raise typer.Exit(1)
+        risk_mode = RiskMode.MANAGED
+    else:
+        level = RiskLevel.MEDIUM
+        risk_mode = RiskMode.MANUAL
 
     # Execute the signal
     _, signer = get_wallet_and_signer(network)
     network_config = NETWORKS[network]
     storage = get_storage()
 
+    # Create risk manager
+    risk_manager = RiskManager(risk_level=level, risk_mode=risk_mode)
+
     # Save signal to storage
     signal_id = storage.save_signal(signal, network, validated=True, executed=False)
 
     async def execute():
         async with InfoClient(network_config) as info_client:
+            # Get trade history for circuit breaker
+            trade_history = storage.get_recent_trade_results(network, limit=50)
+
+            # Evaluate signal through risk manager
+            risk_result = await risk_manager.evaluate_signal(
+                signal,
+                info_client,
+                signer.address,
+                trade_history,
+                storage=storage,
+                network=network,
+            )
+
+            if isinstance(risk_result, RiskReject):
+                return None, risk_result
+
+            # Show diff in managed mode
+            if risk_mode == RiskMode.MANAGED:
+                _print_risk_diff(signal, risk_result)
+
+            if dry_run:
+                console.print("[green]Signal validated successfully (dry run)[/green]")
+                _print_trade_order_summary(risk_result)
+                return risk_result, None
+
             async with ExchangeClient(network_config, signer) as exchange_client:
                 # Get asset index and info
                 asset_index = await info_client.get_asset_index(signal.pair)
@@ -188,11 +243,18 @@ def exec(
                 if signal.is_market:
                     current_price = await info_client.get_mid_price(signal.pair)
 
-                # Set leverage
-                console.print(f"Setting leverage to {signal.leverage}x...")
-                await exchange_client.set_leverage(asset_index, signal.leverage, vault_address=vault)
+                # Set leverage (use risk-adjusted leverage)
+                leverage = risk_result.leverage if risk_level else signal.leverage
+                console.print(f"Setting leverage to {leverage}x...")
+                await exchange_client.set_leverage(asset_index, leverage, vault_address=vault)
 
-                # Place orders
+                # Place orders (use risk-adjusted size if managed mode)
+                if risk_level:
+                    # Update signal with risk-calculated values
+                    signal.size = risk_result.size
+                    if risk_result.stop_loss:
+                        signal.stop_loss = risk_result.stop_loss
+
                 console.print("Placing orders...")
                 results = await exchange_client.place_order_from_signal(
                     signal=signal,
@@ -202,11 +264,28 @@ def exec(
                     sz_decimals=sz_decimals,
                 )
 
-                return results
+                return results, None
 
     try:
         with console.status("Executing signal..."):
-            results = run_async(execute())
+            exec_result = run_async(execute())
+
+        # Check if it's a tuple (new format) or list (order results)
+        if isinstance(exec_result, tuple):
+            results, reject = exec_result
+            if reject:
+                console.print(f"\n[red]Signal rejected by risk manager[/red]")
+                console.print(f"  Reason: {reject.reason.value}")
+                console.print(f"  Details: {reject.details}")
+                console.print(f"  Suggested action: {reject.suggested_action}")
+                raise typer.Exit(1)
+            if results is None:
+                raise typer.Exit(0)  # dry-run already printed
+            # If results is a TradeOrder (dry-run), we're done
+            if hasattr(results, "risk_mode"):
+                raise typer.Exit(0)
+        else:
+            results = exec_result
 
         storage.update_signal_executed(signal_id, True)
 
@@ -1044,6 +1123,296 @@ def _print_signal_summary(signal) -> None:
         console.print(f"  Stop Loss: {signal.stop_loss}")
     if signal.take_profit:
         console.print(f"  Take Profit: {signal.take_profit}")
+
+
+def _print_risk_diff(signal, order) -> None:
+    """Print diff between signal and risk-calculated values."""
+    console.print("\n[bold]Risk-Managed Adjustments:[/bold]")
+
+    table = Table(show_header=True)
+    table.add_column("Parameter", style="cyan")
+    table.add_column("Signal", style="yellow")
+    table.add_column("Calculated", style="green")
+
+    table.add_row("Size", str(signal.size), str(order.size))
+    table.add_row("Leverage", f"{signal.leverage}x", f"{order.leverage}x")
+    table.add_row(
+        "Stop-Loss",
+        str(signal.stop_loss) if signal.stop_loss else "-",
+        f"{order.stop_loss:.2f}",
+    )
+    table.add_row("Est. Liquidation", "-", f"{order.estimated_liquidation:.2f}")
+    table.add_row("Risk %", "-", f"{order.risk_pct:.2%}")
+    table.add_row("Margin Required", "-", f"${order.margin_required:.2f}")
+    table.add_row("Margin Mode", "-", order.margin_mode)
+
+    console.print(table)
+
+
+def _print_trade_order_summary(order) -> None:
+    """Print summary of a TradeOrder from risk manager."""
+    console.print()
+    console.print(f"  Pair: [cyan]{order.coin}[/cyan]")
+    console.print(f"  Side: {'[green]LONG[/green]' if order.side == 'long' else '[red]SHORT[/red]'}")
+    console.print(f"  Size: {order.size}")
+    console.print(f"  Entry Price: {order.entry_price}")
+    console.print(f"  Leverage: {order.leverage}x")
+    console.print(f"  Stop Loss: {order.stop_loss}")
+    console.print(f"  Risk Amount: ${order.risk_amount:.2f}")
+    console.print(f"  Risk %: {order.risk_pct:.2%}")
+    console.print(f"  Cumulative Risk: {order.cumulative_risk_after:.2%}")
+    console.print(f"  Est. Liquidation: {order.estimated_liquidation:.2f}")
+    console.print(f"  Margin Required: ${order.margin_required:.2f}")
+    console.print(f"  Est. Commission: ${order.estimated_commission:.4f}")
+    console.print(f"  Mode: {order.risk_mode.value} (size: {order.size_source}, sl: {order.sl_source})")
+
+
+# =============================================================================
+# Risk Commands
+# =============================================================================
+
+
+@risk_app.command("check")
+def risk_check(
+    signal_file: Annotated[
+        Path,
+        typer.Option("--signal", "-s", help="Path to signal JSON file"),
+    ],
+    network: NetworkOption = "testnet",
+    risk_level: Annotated[
+        str,
+        typer.Option("--risk-level", "-r", help="Risk level (low/medium/high)"),
+    ] = "medium",
+) -> None:
+    """Check signal against risk rules without executing."""
+    from hyperhandler.client import InfoClient
+    from hyperhandler.models import TradingSignal
+    from hyperhandler.models.risk import RiskLevel, RiskMode, RiskReject
+    from hyperhandler.risk import RiskManager
+    from hyperhandler.storage import get_storage
+
+    if not signal_file.exists():
+        console.print(f"[red]Signal file not found: {signal_file}[/red]")
+        raise typer.Exit(1)
+
+    try:
+        signal_data = json.loads(signal_file.read_text())
+        signal = TradingSignal(**signal_data)
+    except Exception as e:
+        console.print(f"[red]Invalid signal: {e}[/red]")
+        raise typer.Exit(1)
+
+    try:
+        level = RiskLevel(risk_level.lower())
+    except ValueError:
+        console.print(f"[red]Invalid risk level: {risk_level}. Use low/medium/high.[/red]")
+        raise typer.Exit(1)
+
+    _, signer = get_wallet_and_signer(network)
+    network_config = NETWORKS[network]
+    storage = get_storage()
+
+    risk_manager = RiskManager(risk_level=level, risk_mode=RiskMode.MANAGED)
+
+    async def check():
+        async with InfoClient(network_config) as info_client:
+            trade_history = storage.get_recent_trade_results(network, limit=50)
+            return await risk_manager.evaluate_signal(
+                signal,
+                info_client,
+                signer.address,
+                trade_history,
+            )
+
+    with console.status("Evaluating signal..."):
+        result = run_async(check())
+
+    if isinstance(result, RiskReject):
+        console.print(f"\n[red]Signal rejected[/red]")
+        console.print(f"  Reason: {result.reason.value}")
+        console.print(f"  Details: {result.details}")
+        console.print(f"  Suggested action: {result.suggested_action}")
+        raise typer.Exit(1)
+
+    console.print("\n[green]Signal approved[/green]")
+    _print_risk_diff(signal, result)
+    _print_trade_order_summary(result)
+
+    # Show calculation details
+    if result.calculation_details:
+        console.print("\n[bold]Calculation Details:[/bold]")
+        for key, value in result.calculation_details.items():
+            console.print(f"  {key}: {value}")
+
+
+@risk_app.command("status")
+def risk_status(
+    network: NetworkOption = "testnet",
+) -> None:
+    """Show current risk status."""
+    from hyperhandler.client import InfoClient
+    from hyperhandler.models.risk import RiskLevel
+    from hyperhandler.risk import RiskManager, CircuitBreaker, RiskCalculator
+    from hyperhandler.risk.config import RISK_PROFILES
+    from hyperhandler.storage import get_storage
+
+    _, signer = get_wallet_and_signer(network)
+    network_config = NETWORKS[network]
+    storage = get_storage()
+
+    async def fetch_status():
+        async with InfoClient(network_config) as info_client:
+            margin = await info_client.get_margin_summary(signer.address)
+            positions = await info_client.get_positions(signer.address)
+            return margin, positions
+
+    with console.status("Fetching account status..."):
+        margin, positions = run_async(fetch_status())
+
+    account_value = Decimal(margin.get("accountValue", 0))
+    available = Decimal(margin.get("withdrawable", 0))
+
+    console.print(f"\n[bold]Risk Status ({network})[/bold]")
+    console.print(f"Address: [cyan]{signer.address}[/cyan]")
+    console.print()
+
+    # Account summary
+    console.print("[bold]Account:[/bold]")
+    console.print(f"  Account Value: [green]${account_value:.2f}[/green]")
+    console.print(f"  Available Balance: ${available:.2f}")
+    console.print()
+
+    # Open positions with risk
+    if positions:
+        console.print(f"[bold]Open Positions ({len(positions)}):[/bold]")
+        total_risk = Decimal("0")
+        pos_table = Table()
+        pos_table.add_column("Coin", style="cyan")
+        pos_table.add_column("Side")
+        pos_table.add_column("Size", justify="right")
+        pos_table.add_column("Entry", justify="right")
+        pos_table.add_column("PnL", justify="right")
+        pos_table.add_column("Risk $", justify="right")
+
+        for pos in positions:
+            side = "[green]LONG[/green]" if pos.is_long else "[red]SHORT[/red]"
+            pnl_color = "green" if pos.unrealized_pnl >= 0 else "red"
+            risk_amt = pos.risk_amount or Decimal("0")
+            total_risk += risk_amt
+
+            pos_table.add_row(
+                pos.coin,
+                side,
+                str(pos.abs_size),
+                f"{pos.entry_price:.2f}",
+                f"[{pnl_color}]{pos.unrealized_pnl:+.2f}[/{pnl_color}]",
+                f"${risk_amt:.2f}" if risk_amt else "-",
+            )
+
+        console.print(pos_table)
+        risk_pct = total_risk / account_value if account_value > 0 else Decimal("0")
+        console.print(f"  Total Risk: ${total_risk:.2f} ({risk_pct:.1%})")
+    else:
+        console.print("[dim]No open positions[/dim]")
+
+    console.print()
+
+    # Circuit breaker status
+    trade_history = storage.get_recent_trade_results(network, limit=50)
+    profile = RISK_PROFILES[RiskLevel.MEDIUM]
+    circuit_breaker = CircuitBreaker(profile)
+    cb_status = circuit_breaker.check(trade_history, account_value)
+
+    console.print("[bold]Circuit Breaker:[/bold]")
+    if cb_status.active:
+        level_color = "red" if cb_status.level == "HARD" else "yellow"
+        console.print(f"  Status: [{level_color}]{cb_status.level}[/{level_color}]")
+        console.print(f"  Trigger: {cb_status.trigger.value}")
+        console.print(f"  Reason: {cb_status.reason}")
+        console.print(f"  Risk Multiplier: {cb_status.risk_multiplier}")
+    else:
+        console.print("  Status: [green]INACTIVE[/green]")
+
+    console.print(f"  Consecutive Losses: {cb_status.consecutive_losses}")
+    console.print(f"  Daily Loss: {cb_status.daily_loss_pct:.2%}")
+    console.print()
+
+    # Recent trades
+    if trade_history:
+        console.print(f"[bold]Recent Trades (last {min(5, len(trade_history))}):[/bold]")
+        trade_table = Table()
+        trade_table.add_column("Coin", style="cyan")
+        trade_table.add_column("Side")
+        trade_table.add_column("PnL", justify="right")
+        trade_table.add_column("Closed")
+
+        for trade in trade_history[:5]:
+            side = "[green]LONG[/green]" if trade.side == "long" else "[red]SHORT[/red]"
+            pnl_color = "green" if trade.pnl >= 0 else "red"
+            trade_table.add_row(
+                trade.coin,
+                side,
+                f"[{pnl_color}]{trade.pnl:+.2f}[/{pnl_color}]",
+                trade.closed_at.strftime("%Y-%m-%d %H:%M"),
+            )
+
+        console.print(trade_table)
+    else:
+        console.print("[dim]No recent trades[/dim]")
+
+
+@risk_app.command("reset")
+def risk_reset(
+    network: NetworkOption = "testnet",
+    confirm: Annotated[
+        bool,
+        typer.Option("--yes", "-y", help="Skip confirmation"),
+    ] = False,
+) -> None:
+    """Reset circuit breaker (manual override)."""
+    from datetime import datetime, timezone
+    from hyperhandler.models.risk import TradeResult
+    from hyperhandler.storage import get_storage
+
+    storage = get_storage()
+
+    # Check current status first
+    trade_history = storage.get_recent_trade_results(network, limit=50)
+    consecutive_losses = 0
+    for trade in reversed(trade_history):
+        if trade.pnl < 0:
+            consecutive_losses += 1
+        else:
+            break
+
+    if consecutive_losses == 0:
+        console.print("[yellow]Circuit breaker is not triggered (no consecutive losses)[/yellow]")
+        return
+
+    console.print(f"[bold]Current consecutive losses: {consecutive_losses}[/bold]")
+
+    if not confirm:
+        if not typer.confirm("Reset circuit breaker by adding a virtual win?"):
+            console.print("[yellow]Cancelled[/yellow]")
+            raise typer.Exit(0)
+
+    # Add a virtual "win" trade to reset consecutive losses
+    virtual_trade = TradeResult(
+        coin="RESET",
+        side="long",
+        entry_price=Decimal("0"),
+        exit_price=Decimal("0"),
+        size=Decimal("0"),
+        pnl=Decimal("0.01"),  # Small positive PnL
+        fees=Decimal("0"),
+        funding_paid=Decimal("0"),
+        opened_at=datetime.now(timezone.utc),
+        closed_at=datetime.now(timezone.utc),
+    )
+
+    storage.save_trade_result(virtual_trade, network)
+    console.print("[green]Circuit breaker reset successfully[/green]")
+    console.print("[dim]A virtual trade with $0.01 PnL was added to reset consecutive losses[/dim]")
 
 
 if __name__ == "__main__":

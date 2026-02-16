@@ -3,6 +3,7 @@
 from hyperhandler.risk.calculator import RiskCalculator
 from hyperhandler.risk.circuit_breaker import CircuitBreaker
 from hyperhandler.risk.collector import TradeResultCollector
+from hyperhandler.risk.manager import RiskManager
 from hyperhandler.risk.config import (
     ATR_SETTINGS,
     CORRELATION_MAP,
@@ -21,6 +22,8 @@ __all__ = [
     "CircuitBreaker",
     # Collector
     "TradeResultCollector",
+    # Manager
+    "RiskManager",
     # Config
     "ATR_SETTINGS",
     "CORRELATION_MAP",

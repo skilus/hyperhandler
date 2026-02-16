@@ -6,6 +6,8 @@ CLI-сервис для автоматизации торговли на Hyperli
 
 - Исполнение торговых сигналов (market/limit ордера)
 - Автоматическая установка Stop-Loss и Take-Profit
+- **Risk Management** — автоматический расчёт размера позиции и стоп-лосса
+- **Circuit Breaker** — автоматическая остановка торговли при серии убытков
 - Поддержка Vault-трейдинга (копитрейдинг)
 - Работа с mainnet и testnet
 - Мониторинг позиций и ордеров
@@ -67,6 +69,9 @@ hyperhandler validate --signal signal.json
 
 # Исполнение
 hyperhandler exec --signal signal.json --network testnet
+
+# Исполнение с риск-менеджментом (автоматический расчёт размера)
+hyperhandler exec --signal signal.json --risk-level medium --network testnet
 ```
 
 ## CLI команды
@@ -74,8 +79,11 @@ hyperhandler exec --signal signal.json --network testnet
 ### Торговля
 
 ```bash
-# Исполнить сигнал
+# Исполнить сигнал (manual mode — параметры из сигнала)
 hyperhandler exec --signal signal.json [--network mainnet|testnet] [--vault 0x...]
+
+# Исполнить с риск-менеджментом (managed mode — автоматический расчёт)
+hyperhandler exec --signal signal.json --risk-level medium --dry-run
 
 # Валидация без исполнения
 hyperhandler validate --signal signal.json
@@ -83,6 +91,26 @@ hyperhandler validate --signal signal.json
 # Из stdin
 echo '{"pair":"BTC",...}' | hyperhandler exec
 ```
+
+### Риск-менеджмент
+
+```bash
+# Проверить сигнал без исполнения (показывает расчёты)
+hyperhandler risk check --signal signal.json --risk-level medium
+
+# Статус риска (позиции, circuit breaker, daily PnL)
+hyperhandler risk status
+
+# Сбросить circuit breaker вручную
+hyperhandler risk reset --yes
+```
+
+**Risk Levels:**
+| Уровень | Risk per Trade | Max Leverage | Max Positions | Daily Loss Limit |
+|---------|----------------|--------------|---------------|------------------|
+| `low` | 1% | 5x | 3 | 2% |
+| `medium` | 2% | 10x | 5 | 3% |
+| `high` | 3% | 20x | 8 | 5% |
 
 ### Мониторинг
 
@@ -172,6 +200,8 @@ hyperhandler faucet --network testnet
 
 ## Формат сигнала
 
+### Базовый формат (Manual Mode)
+
 ```json
 {
   "pair": "BTC",
@@ -185,16 +215,33 @@ hyperhandler faucet --network testnet
 }
 ```
 
+### Расширенный формат (Managed Mode)
+
+```json
+{
+  "pair": "BTC",
+  "side": "long",
+  "order_type": "market",
+  "size": 0.1,
+  "confidence": 0.8,
+  "horizon": "intraday",
+  "source": "signal-provider-1"
+}
+```
+
 | Поле | Тип | Обязательное | Описание |
 |------|-----|--------------|----------|
 | `pair` | string | Да | Символ ассета (BTC, ETH, SOL) |
 | `side` | enum | Да | `long` или `short` |
 | `order_type` | enum | Да | `market` или `limit` |
 | `entry_price` | decimal | Для limit | Цена входа |
-| `size` | decimal | Да | Размер позиции |
+| `size` | decimal | Да* | Размер позиции (*игнорируется в managed mode) |
 | `leverage` | int | Нет | Плечо (по умолчанию 5) |
 | `stop_loss` | decimal | Нет | Цена стоп-лосса |
 | `take_profit` | decimal | Нет | Цена тейк-профита |
+| `confidence` | float | Нет | Уверенность 0.0-1.0 (влияет на размер в managed mode) |
+| `horizon` | enum | Нет | `scalp`, `intraday`, `swing`, `position` |
+| `source` | string | Нет | ID источника сигнала |
 
 ## Конфигурация
 

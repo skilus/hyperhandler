@@ -12,6 +12,8 @@ argument-hint: [command] [options]
 
 - ✅ Исполнение торговых сигналов (market/limit ордера)
 - ✅ Автоматическая установка Stop-Loss и Take-Profit
+- ✅ **Risk Management** — автоматический расчёт размера позиции (ATR-based)
+- ✅ **Circuit Breaker** — блокировка торговли при серии убытков
 - ✅ Vault-трейдинг (копитрейдинг)
 - ✅ HD Wallet с BIP-39/BIP-44 деривацией
 - ✅ Мониторинг позиций и ордеров
@@ -35,16 +37,23 @@ src/hyperhandler/
 ├── signer.py           # EIP-712 request signing
 ├── storage.py          # SQLite history storage
 ├── models/             # Pydantic models
-│   ├── signal.py       # TradingSignal
+│   ├── signal.py       # TradingSignal, SignalHorizon
 │   ├── order.py        # OrderResult, Position
 │   ├── vault.py        # VaultInfo
-│   └── validator.py    # SignalValidator
+│   ├── validator.py    # SignalValidator
+│   └── risk.py         # RiskLevel, TradeOrder, TradeResult
 ├── client/             # API clients
 │   ├── base.py         # BaseClient with retry
-│   ├── info.py         # Public data (no signature)
+│   ├── info.py         # Public data + candles, funding
 │   ├── exchange.py     # Trading operations
 │   ├── vault.py        # Vault operations
 │   └── order_builder.py
+├── risk/               # Risk Management module
+│   ├── manager.py      # RiskManager (main entry)
+│   ├── calculator.py   # ATR, position sizing, leverage
+│   ├── circuit_breaker.py  # Consecutive losses, daily limit
+│   ├── collector.py    # TradeResultCollector
+│   └── config.py       # RiskProfile, HLConfig
 └── wallet/             # Key management
     ├── manager.py      # WalletManager
     └── providers/      # Env, Keyring, Prompt, HD
@@ -55,12 +64,41 @@ src/hyperhandler/
 ### Торговля
 
 ```bash
-# Исполнить сигнал
+# Исполнить сигнал (manual mode — параметры из сигнала)
 hyperhandler exec --signal signal.json [--network mainnet|testnet] [--vault 0x...]
+
+# Исполнить с риск-менеджментом (managed mode — автоматический расчёт)
+hyperhandler exec --signal signal.json --risk-level medium
 
 # Валидация без исполнения
 hyperhandler validate --signal signal.json
 ```
+
+### Риск-менеджмент
+
+```bash
+# Проверить сигнал без исполнения (показывает все расчёты)
+hyperhandler risk check --signal signal.json --risk-level medium
+
+# Статус риска (позиции, circuit breaker, daily PnL)
+hyperhandler risk status
+
+# Сбросить circuit breaker вручную
+hyperhandler risk reset --yes
+```
+
+**Risk Levels:**
+
+| Уровень | Risk/Trade | Max Leverage | Max Positions | Circuit Breaker |
+|---------|------------|--------------|---------------|-----------------|
+| `low` | 1% | 5x | 3 | 4 losses |
+| `medium` | 2% | 10x | 5 | 5 losses |
+| `high` | 3% | 20x | 8 | 6 losses |
+
+**Risk Modes:**
+
+- `MANUAL` — валидирует параметры сигнала, не меняет их (default)
+- `MANAGED` — автоматически рассчитывает size, leverage, stop-loss (--risk-level)
 
 ### Мониторинг
 
@@ -116,6 +154,8 @@ hyperhandler faucet --network testnet
 
 ## Формат торгового сигнала
 
+### Базовый формат (Manual Mode)
+
 ```json
 {
   "pair": "BTC",
@@ -129,16 +169,33 @@ hyperhandler faucet --network testnet
 }
 ```
 
+### Расширенный формат (Managed Mode)
+
+```json
+{
+  "pair": "BTC",
+  "side": "long",
+  "order_type": "market",
+  "size": 0.1,
+  "confidence": 0.8,
+  "horizon": "intraday",
+  "source": "signal-provider-1"
+}
+```
+
 | Поле | Тип | Обязательное | Описание |
 |------|-----|--------------|----------|
 | `pair` | string | Да | Символ ассета (BTC, ETH, SOL) |
 | `side` | enum | Да | `long` или `short` |
 | `order_type` | enum | Да | `market` или `limit` |
 | `entry_price` | decimal | Для limit | Цена входа |
-| `size` | decimal | Да | Размер позиции |
+| `size` | decimal | Да* | Размер позиции (*игнорируется в managed mode) |
 | `leverage` | int | Нет | Плечо (по умолчанию 5) |
 | `stop_loss` | decimal | Нет | Цена стоп-лосса |
 | `take_profit` | decimal | Нет | Цена тейк-профита |
+| `confidence` | float | Нет | 0.0-1.0, влияет на размер в managed mode |
+| `horizon` | enum | Нет | `scalp`, `intraday`, `swing`, `position` |
+| `source` | string | Нет | ID источника сигнала |
 
 ## Правила валидации сигнала
 
@@ -188,6 +245,8 @@ security:
 
 - **signals** — все принятые сигналы (JSON, validated, executed)
 - **orders** — все отправленные ордера (order_id, status, filled_size, error)
+- **trade_results** — результаты закрытых сделок (для circuit breaker)
+- **risk_decisions** — audit log риск-решений (input/output, reject reason)
 
 ### Переменные окружения
 

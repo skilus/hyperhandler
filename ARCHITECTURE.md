@@ -32,10 +32,19 @@ src/hyperhandler/
 │
 ├── models/                  # Pydantic модели
 │   ├── __init__.py
-│   ├── signal.py            # TradingSignal, OrderSide, OrderType
+│   ├── signal.py            # TradingSignal, OrderSide, OrderType, SignalHorizon
 │   ├── order.py             # OrderResult, Position, OpenOrder
 │   ├── vault.py             # VaultInfo, VaultPosition, VaultDetails
-│   └── validator.py         # SignalValidator, ValidationConfig
+│   ├── validator.py         # SignalValidator, ValidationConfig
+│   └── risk.py              # RiskLevel, TradeOrder, TradeResult, CircuitBreakerStatus
+│
+├── risk/                    # Risk Management модуль
+│   ├── __init__.py
+│   ├── manager.py           # RiskManager — главный класс
+│   ├── calculator.py        # ATR, position sizing, leverage selection
+│   ├── circuit_breaker.py   # Circuit breaker (consecutive losses, daily limit)
+│   ├── collector.py         # TradeResultCollector
+│   └── config.py            # RiskProfile, HLConfig, ATR_SETTINGS
 │
 ├── client/                  # API клиенты
 │   ├── __init__.py
@@ -66,6 +75,7 @@ Typer-приложение с командами:
 | Команда | Описание |
 |---------|----------|
 | `exec` | Исполнение торгового сигнала |
+| `exec --risk-level` | Исполнение с автоматическим расчётом размера |
 | `validate` | Валидация сигнала без исполнения |
 | `positions` | Показать открытые позиции |
 | `orders` | Показать открытые ордера |
@@ -75,6 +85,9 @@ Typer-приложение с командами:
 | `config *` | Управление конфигурацией |
 | `wallet *` | HD wallet (seed phrase) |
 | `vaults *` | Операции с vaults |
+| `risk check` | Проверить сигнал через риск-менеджер |
+| `risk status` | Статус риска и circuit breaker |
+| `risk reset` | Сбросить circuit breaker |
 
 ### 2. Модели (`models/`)
 
@@ -90,6 +103,10 @@ class TradingSignal(BaseModel):
     entry_price: Decimal | None
     stop_loss: Decimal | None
     take_profit: Decimal | None
+    # Risk management fields (optional)
+    confidence: float | None  # 0.0-1.0, affects position sizing
+    horizon: SignalHorizon    # scalp | intraday | swing | position
+    source: str | None        # Signal source identifier
 ```
 
 Валидаторы:
@@ -152,7 +169,62 @@ class TradingSignal(BaseModel):
 - Расчёт slippage для market ордеров
 - Группировка ордеров (`normalTpsl`)
 
-### 4. Подпись (`signer.py`)
+### 4. Risk Management (`risk/`)
+
+#### RiskManager
+
+Главный класс для оценки риска сигнала:
+
+```python
+class RiskManager:
+    def __init__(risk_level, risk_mode, hl_config)
+    async def evaluate_signal(signal, info_client, address, trade_history) -> TradeOrder | RiskReject
+    def evaluate_signal_with_data(...) -> TradeOrder | RiskReject  # Pure function for testing
+```
+
+**Risk Modes:**
+- `MANUAL` — валидирует параметры сигнала, не меняет их
+- `MANAGED` — автоматически рассчитывает size, leverage, stop-loss
+
+#### RiskCalculator
+
+Чистые функции для расчётов:
+- `calculate_atr()` — ATR на основе EMA (чистый Python)
+- `calculate_stop_loss()` — ATR-based стоп-лосс
+- `estimate_liquidation_price()` — расчёт ликвидационной цены
+- `select_leverage()` — выбор плеча с учётом stop distance
+- `calculate_position_size()` — размер позиции из риск-бюджета
+- `calculate_cumulative_risk()` — кумулятивный риск с корреляцией
+
+#### CircuitBreaker
+
+Отслеживание убытков и блокировка торговли:
+
+```python
+class CircuitBreaker:
+    def check(trade_history, account_value) -> CircuitBreakerStatus
+    def get_reject(status) -> RiskReject | None
+```
+
+**Триггеры:**
+- `SOFT` — N consecutive losses → risk multiplier 0.5
+- `HARD` — M consecutive losses или daily loss limit → блокировка
+
+#### TradeResultCollector
+
+Сбор результатов закрытых сделок:
+- `collect_from_fills()` — reconcile из HL API
+- `record_close()` — запись при закрытии через CLI
+
+#### Risk Profiles
+
+| Profile | Risk/Trade | Max Cumulative | Max Leverage | Soft Stop | Hard Stop |
+|---------|------------|----------------|--------------|-----------|-----------|
+| LOW | 1% | 4% | 5x | 2 losses | 4 losses |
+| MEDIUM | 2% | 6% | 10x | 3 losses | 5 losses |
+| HIGH | 3% | 10% | 20x | 3 losses | 6 losses |
+
+### 5. Подпись (`signer.py`)
 
 ```python
 class Signer:
@@ -199,7 +271,7 @@ class Signer:
 - **nonce**: timestamp в миллисекундах
 - **source**: "a" для mainnet, "b" для testnet — подписи не переносимы между сетями
 
-### 5. Wallet (`wallet/`)
+### 6. Wallet (`wallet/`)
 
 #### WalletManager
 
@@ -236,7 +308,7 @@ Seed Phrase (12/24 words)
 - `wallet list` — показать derived адреса
 - `wallet use --index N` — получить ключ для индекса N
 
-### 6. Storage (`storage.py`)
+### 7. Storage (`storage.py`)
 
 SQLite база данных (`~/.hyperhandler/history.db`):
 
@@ -251,7 +323,18 @@ SQLite база данных (`~/.hyperhandler/history.db`):
 - size, price, status, filled_size, avg_price
 - error, vault_address
 
-### 7. Config (`config.py`)
+**Таблица trade_results:** (для circuit breaker)
+- id, signal_id, network, coin, side
+- entry_price, exit_price, size, pnl, fees, funding_paid
+- opened_at, closed_at
+
+**Таблица risk_decisions:** (audit log)
+- id, created_at, network, signal_id
+- risk_mode, decision, reject_reason
+- coin, side, input_size, output_size
+- risk_pct, estimated_liq, details_json
+
+### 8. Config (`config.py`)
 
 ```python
 class Config:
@@ -270,7 +353,7 @@ class NetworkConfig:
 
 ## Потоки данных
 
-### Исполнение сигнала
+### Исполнение сигнала (Manual Mode)
 
 ```
 1. CLI: exec --signal signal.json
@@ -286,21 +369,63 @@ class NetworkConfig:
 5. ├── WalletManager.get_private_key()
    │   └── Env → Keyring → Prompt
    │
-6. ├── InfoClient.get_asset_index()
+6. ├── RiskManager.evaluate_signal()  ← NEW
+   │   ├── CircuitBreaker.check()
+   │   ├── Validate risk limits
+   │   └── Return TradeOrder | RiskReject
+   │
+7. ├── InfoClient.get_asset_index()
    │   └── (кэшируется)
    │
-7. ├── InfoClient.get_mid_price() [для market]
+8. ├── InfoClient.get_mid_price() [для market]
    │
-8. ├── ExchangeClient.set_leverage()
+9. ├── ExchangeClient.set_leverage()
    │
-9. ├── OrderBuilder.build_order_payload()
+10.├── OrderBuilder.build_order_payload()
    │   └── Entry + SL + TP
+   │
+11.├── Signer.sign_action()
+   │
+12.├── ExchangeClient._post("exchange", payload)
+   │
+13.├── Storage.save_signal(), save_order(), save_risk_decision()
+   │
+14.└── Вывод результата
+```
+
+### Исполнение сигнала (Managed Mode)
+
+```
+1. CLI: exec --signal signal.json --risk-level medium
+   │
+2. ├── Загрузка JSON
+   │
+3. ├── Парсинг в TradingSignal
+   │
+4. ├── SignalValidator.validate()
+   │
+5. ├── WalletManager.get_private_key()
+   │
+6. ├── RiskManager.evaluate_signal()  ← MANAGED MODE
+   │   ├── CircuitBreaker.check()
+   │   ├── InfoClient.get_candles() → ATR
+   │   ├── RiskCalculator.calculate_stop_loss()
+   │   ├── RiskCalculator.select_leverage()
+   │   ├── RiskCalculator.calculate_position_size()
+   │   ├── RiskCalculator.calculate_cumulative_risk()
+   │   └── Return TradeOrder (with calculated values)
+   │
+7. ├── CLI: показать diff (Signal → Calculated)
+   │
+8. ├── ExchangeClient.set_leverage(calculated)
+   │
+9. ├── OrderBuilder.build_order_payload(TradeOrder)
    │
 10.├── Signer.sign_action()
    │
 11.├── ExchangeClient._post("exchange", payload)
    │
-12.├── Storage.save_signal(), save_order()
+12.├── Storage.save_*()
    │
 13.└── Вывод результата
 ```
@@ -355,7 +480,11 @@ tests/
 │   ├── test_signer.py
 │   ├── test_config.py
 │   ├── test_storage.py
-│   └── test_wallet.py
+│   ├── test_wallet.py
+│   ├── test_cli.py
+│   ├── test_risk_calculator.py   # ATR, position sizing, leverage
+│   ├── test_risk_manager.py      # Manual/Managed modes
+│   └── test_circuit_breaker.py   # Consecutive losses, daily limit
 └── integration/             # Integration тесты (mocked HTTP)
     ├── conftest.py          # respx fixtures
     ├── test_info_client.py
