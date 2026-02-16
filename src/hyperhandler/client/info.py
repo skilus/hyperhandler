@@ -1,5 +1,6 @@
 """Info API client for Hyperliquid."""
 
+import time
 from decimal import Decimal
 
 from hyperhandler.client.base import AssetNotFoundError, BaseClient
@@ -209,3 +210,98 @@ class InfoClient(BaseClient):
             {"type": "userFills", "user": address},
         )
         return result[:limit] if isinstance(result, list) else []
+
+    async def get_candles(
+        self,
+        symbol: str,
+        interval: str = "1h",
+        lookback: int = 100,
+    ) -> list[dict]:
+        """Get candlestick data for ATR calculation.
+
+        Requests 20% extra candles to handle potential gaps from maintenance.
+
+        Args:
+            symbol: Asset symbol.
+            interval: Candle interval (15m, 1h, 4h, 1d).
+            lookback: Number of candles to return.
+
+        Returns:
+            List of candle dicts with o, h, l, c, t fields.
+        """
+        # Request extra candles to handle gaps
+        request_lookback = int(lookback * 1.2)
+
+        end_time = int(time.time() * 1000)
+        start_time = end_time - (request_lookback * self._interval_to_ms(interval))
+
+        result = await self._post(
+            "info",
+            {
+                "type": "candleSnapshot",
+                "req": {
+                    "coin": symbol,
+                    "interval": interval,
+                    "startTime": start_time,
+                    "endTime": end_time,
+                },
+            },
+        )
+
+        # Trim to requested lookback
+        if len(result) > lookback:
+            result = result[-lookback:]
+
+        return result
+
+    async def get_asset_ctx(self, symbol: str) -> dict:
+        """Get asset context including funding rate.
+
+        Args:
+            symbol: Asset symbol.
+
+        Returns:
+            Asset context dict with funding, openInterest, etc.
+
+        Raises:
+            AssetNotFoundError: If symbol not found.
+        """
+        result = await self._post("info", {"type": "metaAndAssetCtxs"})
+        meta = result[0]
+        ctxs = result[1]
+
+        for i, asset in enumerate(meta.get("universe", [])):
+            if asset["name"] == symbol:
+                return ctxs[i]
+
+        raise AssetNotFoundError(f"Asset context not found: {symbol}")
+
+    async def get_funding_rate(self, symbol: str) -> Decimal:
+        """Get current hourly funding rate.
+
+        Args:
+            symbol: Asset symbol.
+
+        Returns:
+            Hourly funding rate as Decimal.
+        """
+        ctx = await self.get_asset_ctx(symbol)
+        return Decimal(str(ctx.get("funding", "0")))
+
+    def _interval_to_ms(self, interval: str) -> int:
+        """Convert interval string to milliseconds.
+
+        Args:
+            interval: Interval string (1m, 15m, 1h, 4h, 1d).
+
+        Returns:
+            Interval in milliseconds.
+        """
+        multipliers = {
+            "1m": 60_000,
+            "15m": 900_000,
+            "1h": 3_600_000,
+            "4h": 14_400_000,
+            "1d": 86_400_000,
+        }
+        return multipliers.get(interval, 3_600_000)

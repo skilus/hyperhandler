@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Generator
 
 from hyperhandler.models import OrderResult, OrderStatus, TradingSignal
+from hyperhandler.models.risk import RiskDecisionLog, TradeResult
 
 
 class DecimalEncoder(json.JSONEncoder):
@@ -82,6 +83,50 @@ class Storage:
                 CREATE INDEX IF NOT EXISTS idx_orders_signal ON orders(signal_id);
                 CREATE INDEX IF NOT EXISTS idx_orders_pair ON orders(pair);
                 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+
+                CREATE TABLE IF NOT EXISTS trade_results (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    signal_id INTEGER,
+                    network TEXT NOT NULL,
+                    coin TEXT NOT NULL,
+                    side TEXT NOT NULL,
+                    entry_price TEXT NOT NULL,
+                    exit_price TEXT NOT NULL,
+                    size TEXT NOT NULL,
+                    pnl TEXT NOT NULL,
+                    fees TEXT NOT NULL,
+                    funding_paid TEXT NOT NULL,
+                    opened_at TIMESTAMP NOT NULL,
+                    closed_at TIMESTAMP NOT NULL,
+                    FOREIGN KEY (signal_id) REFERENCES signals(id)
+                );
+
+                CREATE TABLE IF NOT EXISTS risk_decisions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    network TEXT NOT NULL,
+                    signal_id INTEGER,
+                    risk_mode TEXT NOT NULL,
+                    decision TEXT NOT NULL,
+                    reject_reason TEXT,
+                    coin TEXT NOT NULL,
+                    side TEXT NOT NULL,
+                    input_size TEXT,
+                    output_size TEXT,
+                    input_leverage INTEGER,
+                    output_leverage INTEGER,
+                    risk_pct TEXT,
+                    estimated_liq TEXT,
+                    details_json TEXT,
+                    FOREIGN KEY (signal_id) REFERENCES signals(id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_trade_results_closed ON trade_results(closed_at);
+                CREATE INDEX IF NOT EXISTS idx_trade_results_network ON trade_results(network);
+                CREATE INDEX IF NOT EXISTS idx_trade_results_coin ON trade_results(coin);
+                CREATE INDEX IF NOT EXISTS idx_risk_decisions_network ON risk_decisions(network);
+                CREATE INDEX IF NOT EXISTS idx_risk_decisions_coin ON risk_decisions(coin);
                 """
             )
 
@@ -313,6 +358,136 @@ class Storage:
             )
             row = cursor.fetchone()
             return dict(row) if row else None
+
+    def save_trade_result(self, result: TradeResult, network: str) -> int:
+        """Save a trade result for circuit breaker tracking.
+
+        Args:
+            result: Trade result to save.
+            network: Network name.
+
+        Returns:
+            Trade result ID.
+        """
+        with self._connection() as conn:
+            cursor = conn.execute(
+                """
+                INSERT INTO trade_results (
+                    signal_id, network, coin, side, entry_price, exit_price,
+                    size, pnl, fees, funding_paid, opened_at, closed_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    result.signal_id,
+                    network,
+                    result.coin,
+                    result.side,
+                    str(result.entry_price),
+                    str(result.exit_price),
+                    str(result.size),
+                    str(result.pnl),
+                    str(result.fees),
+                    str(result.funding_paid),
+                    result.opened_at.isoformat(),
+                    result.closed_at.isoformat(),
+                ),
+            )
+            return cursor.lastrowid or 0
+
+    def get_recent_trade_results(
+        self,
+        network: str,
+        limit: int = 50,
+        coin: str | None = None,
+    ) -> list[TradeResult]:
+        """Get recent trade results for circuit breaker.
+
+        Args:
+            network: Network name.
+            limit: Maximum number of results.
+            coin: Optional coin filter.
+
+        Returns:
+            List of TradeResult objects.
+        """
+        query = "SELECT * FROM trade_results WHERE network = ?"
+        params: list[Any] = [network]
+
+        if coin:
+            query += " AND coin = ?"
+            params.append(coin)
+
+        query += " ORDER BY closed_at DESC LIMIT ?"
+        params.append(limit)
+
+        with self._connection() as conn:
+            cursor = conn.execute(query, params)
+            results = []
+            for row in cursor.fetchall():
+                results.append(
+                    TradeResult(
+                        id=row["id"],
+                        signal_id=row["signal_id"],
+                        coin=row["coin"],
+                        side=row["side"],
+                        entry_price=Decimal(row["entry_price"]),
+                        exit_price=Decimal(row["exit_price"]),
+                        size=Decimal(row["size"]),
+                        pnl=Decimal(row["pnl"]),
+                        fees=Decimal(row["fees"]),
+                        funding_paid=Decimal(row["funding_paid"]),
+                        opened_at=datetime.fromisoformat(row["opened_at"]),
+                        closed_at=datetime.fromisoformat(row["closed_at"]),
+                    )
+                )
+            return results
+
+    def save_risk_decision(self, decision: RiskDecisionLog, network: str) -> int:
+        """Save risk decision for audit trail.
+
+        Args:
+            decision: Risk decision log.
+            network: Network name.
+
+        Returns:
+            Decision ID.
+        """
+        details = {
+            "mark_price": str(decision.mark_price),
+            "funding_rate": str(decision.funding_rate),
+            "atr_value": str(decision.atr_value) if decision.atr_value else None,
+            "consecutive_losses": decision.consecutive_losses,
+            "daily_pnl_pct": str(decision.daily_pnl_pct),
+            "account_value": str(decision.account_value),
+            "available_balance": str(decision.available_balance),
+        }
+
+        with self._connection() as conn:
+            cursor = conn.execute(
+                """
+                INSERT INTO risk_decisions (
+                    network, risk_mode, decision, reject_reason, coin, side,
+                    input_size, output_size, input_leverage, output_leverage,
+                    risk_pct, estimated_liq, details_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    network,
+                    decision.risk_mode.value,
+                    decision.decision,
+                    decision.reject_reason.value if decision.reject_reason else None,
+                    decision.coin,
+                    decision.side,
+                    str(decision.input_size) if decision.input_size else None,
+                    str(decision.output_size) if decision.output_size else None,
+                    decision.input_leverage,
+                    decision.output_leverage,
+                    str(decision.cumulative_risk_after_pct) if decision.cumulative_risk_after_pct else None,
+                    str(decision.estimated_liquidation) if decision.estimated_liquidation else None,
+                    json.dumps(details),
+                ),
+            )
+            return cursor.lastrowid or 0
 
     def get_stats(self, network: str | None = None) -> dict:
         """Get statistics.
