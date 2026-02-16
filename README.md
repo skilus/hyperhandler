@@ -286,7 +286,30 @@ pytest tests/unit/ -v
 
 # Только integration тесты
 pytest tests/integration/ -v
+
+# E2E тесты (реальный testnet)
+pytest tests/ -v -m e2e
 ```
+
+### Маркеры pytest
+
+- `unit` — быстрые тесты без внешних зависимостей (~240)
+- `integration` — тесты с mocked HTTP (~75)
+- `e2e` — тесты на реальном testnet
+- `vault` — vault-related тесты
+
+### Risk Integration Tests
+
+42 теста в 8 группах (Groups A-H по SPEC-005):
+
+| Группа | Описание |
+|--------|----------|
+| A, B | RiskManager MANUAL/MANAGED modes |
+| C | Storage integration |
+| D | TradeResultCollector |
+| E, F | CLI commands + exec --risk-level |
+| G | Precision & Rounding |
+| H | E2E Risk Lifecycle |
 
 ## Архитектура
 

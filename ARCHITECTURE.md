@@ -473,7 +473,7 @@ class NetworkConfig:
 ```
 tests/
 ├── conftest.py              # Общие fixtures
-├── unit/                    # Unit тесты
+├── unit/                    # Unit тесты (~240)
 │   ├── test_models.py       # TradingSignal, OrderResult
 │   ├── test_validator.py    # SignalValidator
 │   ├── test_order_builder.py
@@ -485,12 +485,33 @@ tests/
 │   ├── test_risk_calculator.py   # ATR, position sizing, leverage
 │   ├── test_risk_manager.py      # Manual/Managed modes
 │   └── test_circuit_breaker.py   # Consecutive losses, daily limit
-└── integration/             # Integration тесты (mocked HTTP)
-    ├── conftest.py          # respx fixtures
+└── integration/             # Integration тесты (~75, mocked HTTP)
+    ├── conftest.py          # respx fixtures, info_request_router
     ├── test_info_client.py
     ├── test_exchange_client.py
-    └── test_vault_client.py
+    ├── test_vault_client.py
+    ├── test_risk_manager.py     # Groups A, B (15 tests)
+    ├── test_risk_storage.py     # Group C (6 tests)
+    ├── test_risk_collector.py   # Group D (5 tests)
+    ├── test_risk_cli.py         # Groups E, F (9 tests)
+    ├── test_risk_precision.py   # Group G (5 tests)
+    └── test_risk_e2e.py         # Group H (2 tests)
 ```
+
+### Risk Integration Tests (SPEC-005)
+
+42 теста в 8 группах:
+
+| Группа | Описание | Тестов |
+|--------|----------|--------|
+| A | RiskManager MANUAL mode | 7 |
+| B | RiskManager MANAGED mode | 8 |
+| C | Storage integration | 6 |
+| D | TradeResultCollector | 5 |
+| E | CLI risk commands | 4 |
+| F | exec with --risk-level | 5 |
+| G | Precision & Rounding | 5 |
+| H | E2E Risk Lifecycle | 2 |
 
 Маркеры pytest:
 - `unit` — быстрые тесты без внешних зависимостей

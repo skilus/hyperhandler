@@ -286,10 +286,25 @@ pytest tests/ -v -m e2e
 
 ### Маркеры pytest
 
-- `unit` — быстрые тесты без внешних зависимостей
-- `integration` — тесты с mocked HTTP (respx)
+- `unit` — быстрые тесты без внешних зависимостей (~240)
+- `integration` — тесты с mocked HTTP (respx, ~75)
 - `e2e` — тесты на реальном testnet
 - `vault` — vault-related тесты
+
+### Risk Integration Tests (SPEC-005)
+
+42 теста в 8 группах:
+
+| Группа | Описание | Тестов |
+|--------|----------|--------|
+| A | RiskManager MANUAL mode | 7 |
+| B | RiskManager MANAGED mode | 8 |
+| C | Storage integration | 6 |
+| D | TradeResultCollector | 5 |
+| E | CLI risk commands | 4 |
+| F | exec with --risk-level | 5 |
+| G | Precision & Rounding | 5 |
+| H | E2E Risk Lifecycle | 2 |
 
 ## Hyperliquid API
 
