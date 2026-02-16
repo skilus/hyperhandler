@@ -20,6 +20,15 @@ class OrderType(str, Enum):
     LIMIT = "limit"
 
 
+class SignalHorizon(str, Enum):
+    """Expected hold duration for ATR timeframe selection."""
+
+    SCALP = "scalp"  # <4h, uses 15m candles
+    INTRADAY = "intraday"  # 4h-24h, uses 1h candles
+    SWING = "swing"  # 1d-7d, uses 4h candles
+    POSITION = "position"  # >7d, uses 1d candles
+
+
 class TradingSignal(BaseModel):
     """Trading signal model with validation."""
 
@@ -31,6 +40,22 @@ class TradingSignal(BaseModel):
     entry_price: Decimal | None = Field(default=None, description="Entry price for limit orders")
     stop_loss: Decimal | None = Field(default=None, description="Stop-loss price")
     take_profit: Decimal | None = Field(default=None, description="Take-profit price")
+
+    # Risk management fields
+    confidence: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Signal confidence (0.0-1.0), affects position sizing",
+    )
+    source: str | None = Field(
+        default=None,
+        description="Signal source ID (influencer/strategy)",
+    )
+    horizon: SignalHorizon = Field(
+        default=SignalHorizon.INTRADAY,
+        description="Expected hold duration for ATR calculation",
+    )
 
     @field_validator("pair")
     @classmethod

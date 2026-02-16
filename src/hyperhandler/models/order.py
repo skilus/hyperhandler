@@ -1,6 +1,7 @@
 """Order-related models."""
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 
@@ -69,6 +70,17 @@ class Position:
     leverage: int
     leverage_type: str  # "cross" or "isolated"
     liquidation_price: Decimal | None = None
+
+    # Risk tracking fields
+    mark_price: Decimal | None = None
+    funding_accrued: Decimal = field(default_factory=lambda: Decimal("0"))
+    stop_loss_price: Decimal | None = None
+    opened_at: datetime | None = None
+
+    # Calculated risk fields (populated by RiskManager)
+    risk_amount: Decimal | None = None  # $ at risk = size * |entry - stop|
+    risk_pct: Decimal | None = None  # % of account value
+    correlation_group: str | None = None  # "btc-major", "l1-alt", etc.
 
     @property
     def is_long(self) -> bool:
