@@ -315,6 +315,8 @@ def exec(
             else:
                 console.print(f"  [red]{order_type}: Failed - {result.error}[/red]")
 
+    except typer.Exit:
+        raise  # Re-raise typer.Exit without catching
     except Exception as e:
         console.print(f"[red]Execution failed: {e}[/red]")
         raise typer.Exit(1)

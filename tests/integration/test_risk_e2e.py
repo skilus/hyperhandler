@@ -161,12 +161,25 @@ class TestRiskLifecycleE2E:
         assert len(results) == 2
         assert all(isinstance(r, TradeOrder) for r in results)
 
-        # Verify storage has 2 decisions
+        # Verify both results have correct distinct coins
+        coins = {r.coin for r in results}
+        assert coins == {"BTC", "ETH"}, f"Expected BTC and ETH, got {coins}"
+
+        # Verify storage has 2 decisions with correct distinct data
         with memory_storage._connection() as conn:
             cursor = conn.execute(
-                "SELECT COUNT(*) FROM risk_decisions WHERE network = ?",
+                "SELECT coin, side FROM risk_decisions WHERE network = ? ORDER BY coin",
                 ("testnet",),
             )
-            count = cursor.fetchone()[0]
+            rows = cursor.fetchall()
 
-        assert count == 2
+        assert len(rows) == 2, f"Expected 2 decisions, got {len(rows)}"
+
+        # Verify distinct coins in storage (no race condition caused duplicate data)
+        stored_coins = {row["coin"] for row in rows}
+        assert stored_coins == {"BTC", "ETH"}, f"Expected BTC and ETH in storage, got {stored_coins}"
+
+        # Verify correct sides (BTC=long, ETH=short)
+        coin_sides = {row["coin"]: row["side"] for row in rows}
+        assert coin_sides.get("BTC") == "long", f"BTC should be long, got {coin_sides.get('BTC')}"
+        assert coin_sides.get("ETH") == "short", f"ETH should be short, got {coin_sides.get('ETH')}"
