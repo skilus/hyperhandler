@@ -47,3 +47,7 @@ cov_annotate/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local artifacts
+output/
+tmp/
