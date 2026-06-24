@@ -132,6 +132,36 @@ func (b *Builder) buildTriggerOrder(
 	)
 }
 
+// BuildSingleOrderPayload builds an "order" action for one explicit order leg,
+// mirroring ExchangeClient.place_order. The price is used verbatim (the caller
+// applies slippage for market orders); orderType selects the time-in-force
+// (Market→Ioc, Limit→Gtc). Key order is significant for the action hash.
+func (b *Builder) BuildSingleOrderPayload(
+	assetIndex int,
+	isBuy bool,
+	size, price decimal.Decimal,
+	orderType models.OrderType,
+	reduceOnly bool,
+) *signer.OrderedMap {
+	tif := "Gtc"
+	if orderType == models.Market {
+		tif = "Ioc"
+	}
+
+	return signer.NewOrderedMap(
+		"type", "order",
+		"orders", []any{signer.NewOrderedMap(
+			"a", assetIndex,
+			"b", isBuy,
+			"p", formatPrice(price),
+			"s", formatSize(size),
+			"r", reduceOnly,
+			"t", signer.NewOrderedMap("limit", signer.NewOrderedMap("tif", tif)),
+		)},
+		"grouping", "na",
+	)
+}
+
 // BuildCancelPayload builds a "cancel" action for a single order. Mirrors
 // order_builder.build_cancel_payload.
 func (b *Builder) BuildCancelPayload(assetIndex int, orderID int64) *signer.OrderedMap {

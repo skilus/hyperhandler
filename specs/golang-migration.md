@@ -6,7 +6,7 @@
 **Work Started:** 2026-06-24 15:00
 **Work Completed:** —
 
-> **Прогресс:** Фаза 0 ✅, Фаза 1 ✅ (signer/order/wallet-hd байт-в-байт против golden; decimal DivisionPrecision=28), Фаза 2 ✅ (модели signal/order/vault/risk + `NewTradingSignal`-фабрика, `SignalValidator`, `BuildOrderPayload`; +6 golden payload-векторов msgpack/action_hash байт-в-байт). Дальше — Фаза 3 (HTTP-клиенты).
+> **Прогресс:** Фаза 0 ✅, Фаза 1 ✅ (signer/order/wallet-hd байт-в-байт против golden; decimal DivisionPrecision=28), Фаза 2 ✅ (модели signal/order/vault/risk + `NewTradingSignal`-фабрика, `SignalValidator`, `BuildOrderPayload`; +6 golden payload-векторов msgpack/action_hash байт-в-байт), Фаза 3 ✅ (sync `net/http` base-клиент с retry-бэкоффом без jitter и `context.Context`; типизированные ошибки `errors.As` с подстрочным HL-маппингом; info/exchange/vault на типизированных DTO; retry-идемпотентность `/exchange` подтверждена тестом — тот же подписанный body/nonce при ретрае, B.6; 22 теста через `httptest`). Дальше — Фаза 4 (risk-модуль).
 
 ---
 
