@@ -330,6 +330,21 @@ func (c *InfoClient) GetFundingRate(ctx context.Context, symbol string) (decimal
 	return decimal.Zero, &AssetNotFoundError{newAPIError("Asset context not found: "+symbol, 0, nil)}
 }
 
+// Faucet requests testnet funds for the address (testnet only). Returns the
+// raw response envelope. Mirrors the inline POST in cli.py:faucet
+// (info type "faucet").
+func (c *InfoClient) Faucet(ctx context.Context, address string) (map[string]any, error) {
+	raw, err := c.post(ctx, "info", map[string]any{"type": "faucet", "user": address}, true)
+	if err != nil {
+		return nil, err
+	}
+	var out map[string]any
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, newAPIError(fmt.Sprintf("decode faucet: %v", err), 0, nil)
+	}
+	return out, nil
+}
+
 // intervalToMs converts a candle interval to milliseconds, defaulting to 1h.
 // Mirrors info.py:_interval_to_ms.
 func intervalToMs(interval string) int64 {

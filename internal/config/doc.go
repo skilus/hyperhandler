@@ -1,3 +1,3 @@
-// Package config holds the network endpoint definitions (Phase 3) and will load
-// YAML + HL_-prefixed env configuration. SPEC-007 Phase 6.
+// Package config holds the network endpoint definitions (Phase 3) and loads
+// YAML + HL_-prefixed env configuration (Phase 6). Mirrors config.py.
 package config
