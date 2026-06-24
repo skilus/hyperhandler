@@ -186,7 +186,7 @@ func (e *Executor) Exec(ctx context.Context, req ExecRequest) (*ExecResult, erro
 	// Persist each order result. Order-type labelling matches Python:
 	// i==0 entry, i==1+stop sl, otherwise tp.
 	for i, r := range results {
-		orderType := "entry"
+		var orderType string
 		switch {
 		case i == 0:
 			orderType = "entry"

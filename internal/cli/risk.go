@@ -167,11 +167,9 @@ func renderRiskStatus(d *service.RiskStatusData, network string) {
 	out("%s", bold("Circuit Breaker:"))
 	cb := d.CBStatus
 	if cb.Active {
-		statusText := cb.Level
+		statusText := yellow(cb.Level)
 		if cb.Level == "HARD" {
 			statusText = red(cb.Level)
-		} else {
-			statusText = yellow(cb.Level)
 		}
 		out("  Status: %s", statusText)
 		out("  Trigger: %s", cb.Trigger)

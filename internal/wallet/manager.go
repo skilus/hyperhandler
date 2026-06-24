@@ -1,3 +1,6 @@
+// Package wallet resolves the trading private key from a chain of providers
+// (env var, system keyring, HD mnemonic, interactive prompt) and exposes key
+// utilities. Mirrors the Python wallet package (SPEC-007).
 package wallet
 
 import (

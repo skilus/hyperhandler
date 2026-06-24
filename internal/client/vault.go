@@ -118,7 +118,7 @@ func (c *VaultClient) GetVaultDetails(ctx context.Context, vaultAddress, userAdd
 	}
 
 	return &models.VaultDetails{
-		Info:          data.vaultWire.toInfo(),
+		Info:          data.toInfo(),
 		AccountValue:  data.Portfolio.AccountValue,
 		Positions:     data.Portfolio.Positions,
 		FollowerState: data.FollowerState,
