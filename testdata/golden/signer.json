@@ -1,0 +1,176 @@
+{
+  "_comment": "Golden signer vectors. Oracle: official hyperliquid SDK. Cross-checked against hyperhandler.signer. Public test keys only.",
+  "vectors": [
+    {
+      "label": "order_mainnet",
+      "private_key": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "address": "0x8fd379246834eac74B8419FfdA202CF8051F7A03",
+      "is_mainnet": true,
+      "action": {
+        "type": "order",
+        "orders": [
+          {
+            "a": 0,
+            "b": true,
+            "p": "67500",
+            "s": "0.1",
+            "r": false
+          }
+        ],
+        "grouping": "na"
+      },
+      "nonce": 1699999999999,
+      "vault_address": null,
+      "expires_after": null,
+      "msgpack_hex": "83a474797065a56f72646572a66f72646572739185a16100a162c3a170a53637353030a173a3302e31a172c2a867726f7570696e67a26e61",
+      "action_hash": "0xca62d72a1c722accec3c6155e5e04721e6f80241184550b31bc572a040cf7ab5",
+      "signature": {
+        "r": "0xea36118d59b4e39b964270ba89688f4fd0409b13f57c77450c06698499acf456",
+        "s": "0x49def28c28fd043cdd1434ae99aacfb5b50a5ee8c9bf6e07eb1142ee434cf610",
+        "v": 27
+      }
+    },
+    {
+      "label": "simple_testnet",
+      "private_key": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "address": "0x8fd379246834eac74B8419FfdA202CF8051F7A03",
+      "is_mainnet": false,
+      "action": {
+        "type": "test",
+        "data": "value"
+      },
+      "nonce": 1699999999999,
+      "vault_address": null,
+      "expires_after": null,
+      "msgpack_hex": "82a474797065a474657374a464617461a576616c7565",
+      "action_hash": "0xc727dea16d130725cd614e7907b9dae5ff11467dfb8e55870e55bbd0b6037b75",
+      "signature": {
+        "r": "0x5f9370f9452925f105aad635674cbeb0142b15cc358a69f7bf1e2904dd908f26",
+        "s": "0xe15e80daf204f4d6c7a4f00227bb1b9794fec7cad928fc866551334e31e92f2",
+        "v": 27
+      }
+    },
+    {
+      "label": "order_with_vault",
+      "private_key": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "address": "0x8fd379246834eac74B8419FfdA202CF8051F7A03",
+      "is_mainnet": true,
+      "action": {
+        "type": "order",
+        "orders": []
+      },
+      "nonce": 1699999999999,
+      "vault_address": "0x1234567890123456789012345678901234567890",
+      "expires_after": null,
+      "msgpack_hex": "82a474797065a56f72646572a66f726465727390",
+      "action_hash": "0x4e77f046a4b82146f72ae6bab21a383f8a7c3257af4e6e12358ff600011a6380",
+      "signature": {
+        "r": "0xbaa1cc73a337bcdc9bf7194eb7fb58ccf75b389a4baee73af4bd6dc295bac798",
+        "s": "0x4d05c450d368d42e3687a9684f85f7c07e1ec7e49c806bb5867c52345446d826",
+        "v": 27
+      }
+    },
+    {
+      "label": "order_with_expires",
+      "private_key": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "address": "0x8fd379246834eac74B8419FfdA202CF8051F7A03",
+      "is_mainnet": true,
+      "action": {
+        "type": "order",
+        "orders": []
+      },
+      "nonce": 1699999999999,
+      "vault_address": null,
+      "expires_after": 1700000059999,
+      "msgpack_hex": "82a474797065a56f72646572a66f726465727390",
+      "action_hash": "0x77333252614d25ca07bb205e1b69fe79e98816f26dce54d9e77e3c6dae3b98ea",
+      "signature": {
+        "r": "0xb0de61c4ef6b7640f42072676c09147412f5d1d4a6915e46bde83618333c9437",
+        "s": "0x1a2604160b04ef26a94d72068987a51f6d95810b2005a9e42fea79ac8ac6c7c1",
+        "v": 27
+      }
+    },
+    {
+      "label": "order_vault_and_expires",
+      "private_key": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "address": "0x19E7E376E7C213B7E7e7e46cc70A5dD086DAff2A",
+      "is_mainnet": false,
+      "action": {
+        "type": "order",
+        "orders": []
+      },
+      "nonce": 1234567890000,
+      "vault_address": "0x1234567890123456789012345678901234567890",
+      "expires_after": 1234567950000,
+      "msgpack_hex": "82a474797065a56f72646572a66f726465727390",
+      "action_hash": "0x698a88ec9207b21f3aefc2de6955b44417e7361789af61cae5387c11667901cb",
+      "signature": {
+        "r": "0xa9e850eb2f77b5aa9b20953f18fe648759391b58b51108c60da36f2effb76cef",
+        "s": "0x146a9c236253bc5991d2fa863b5cd3bbcaac35c01f2235e4cc85466e4e942d7b",
+        "v": 28
+      }
+    },
+    {
+      "label": "full_order_tpsl",
+      "private_key": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "address": "0x19E7E376E7C213B7E7e7e46cc70A5dD086DAff2A",
+      "is_mainnet": true,
+      "action": {
+        "type": "order",
+        "orders": [
+          {
+            "a": 0,
+            "b": true,
+            "p": "67500",
+            "s": "0.1",
+            "r": false,
+            "t": {
+              "limit": {
+                "tif": "Ioc"
+              }
+            }
+          },
+          {
+            "a": 0,
+            "b": false,
+            "p": "63787.5",
+            "s": "0.1",
+            "r": true,
+            "t": {
+              "trigger": {
+                "isMarket": true,
+                "triggerPx": "64000",
+                "tpsl": "sl"
+              }
+            }
+          },
+          {
+            "a": 0,
+            "b": false,
+            "p": "71437.5",
+            "s": "0.1",
+            "r": true,
+            "t": {
+              "trigger": {
+                "isMarket": true,
+                "triggerPx": "71000",
+                "tpsl": "tp"
+              }
+            }
+          }
+        ],
+        "grouping": "normalTpsl"
+      },
+      "nonce": 1700000000000,
+      "vault_address": null,
+      "expires_after": null,
+      "msgpack_hex": "83a474797065a56f72646572a66f72646572739386a16100a162c3a170a53637353030a173a3302e31a172c2a17481a56c696d697481a3746966a3496f6386a16100a162c2a170a736333738372e35a173a3302e31a172c3a17481a77472696767657283a869734d61726b6574c3a9747269676765725078a53634303030a47470736ca2736c86a16100a162c2a170a737313433372e35a173a3302e31a172c3a17481a77472696767657283a869734d61726b6574c3a9747269676765725078a53731303030a47470736ca27470a867726f7570696e67aa6e6f726d616c5470736c",
+      "action_hash": "0xd85cccd2d40669498b9a67d377f872fee0b03de0d0a235c7f13dc79468f93167",
+      "signature": {
+        "r": "0xa1030374b7e0a0a8dcb5e7dc4c28556c53515ca2b75580185776442a2440d2cb",
+        "s": "0x776a3947940f746898f0494e487c8e809396453c9705e27df6981efce9132f12",
+        "v": 27
+      }
+    }
+  ]
+}
