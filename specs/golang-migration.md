@@ -6,7 +6,7 @@
 **Work Started:** 2026-06-24 15:00
 **Work Completed:** —
 
-> **Прогресс:** Фаза 0 ✅, Фаза 1 ✅ (signer/order/wallet-hd байт-в-байт против golden; decimal DivisionPrecision=28). Дальше — Фаза 2 (модели и валидация).
+> **Прогресс:** Фаза 0 ✅, Фаза 1 ✅ (signer/order/wallet-hd байт-в-байт против golden; decimal DivisionPrecision=28), Фаза 2 ✅ (модели signal/order/vault/risk + `NewTradingSignal`-фабрика, `SignalValidator`, `BuildOrderPayload`; +6 golden payload-векторов msgpack/action_hash байт-в-байт). Дальше — Фаза 3 (HTTP-клиенты).
 
 ---
 
