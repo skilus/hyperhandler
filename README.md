@@ -15,18 +15,23 @@ CLI-сервис для автоматизации торговли на Hyperli
 
 ## Установка
 
+Реализация на Go (SPEC-007). Статический бинарь без cgo — драйвер SQLite
+`modernc.org/sqlite` чистый Go, поэтому кросс-компиляция работает «из коробки».
+
 ```bash
 # Клонирование
 git clone <repository-url>
 cd hyperhandler
 
-# Создание виртуального окружения
-python3 -m venv .venv
-source .venv/bin/activate
+# Сборка статического бинаря в ./bin/hyperhandler
+make build
 
-# Установка с dev-зависимостями
-pip install -e ".[dev]"
+# Или установить в $GOBIN
+go install ./cmd/hyperhandler
 ```
+
+Требуется Go 1.25+. Кросс-компиляция релизных бинарей под все платформы
+(linux/darwin/windows, amd64/arm64) — `make release` (артефакты в `dist/`).
 
 ## Быстрый старт
 
@@ -275,41 +280,34 @@ security:
 ## Разработка
 
 ```bash
-# Установка dev-зависимостей
-pip install -e ".[dev]"
+# Запуск всех тестов
+make test          # go test ./... -count=1
 
-# Запуск тестов
-pytest tests/ -v
+# С покрытием по пакетам
+make cover         # go test ./... -cover
 
-# Только unit тесты
-pytest tests/unit/ -v
+# Статический анализ
+make vet           # go vet ./...
+make lint          # golangci-lint run ./...
 
-# Только integration тесты
-pytest tests/integration/ -v
-
-# E2E тесты (реальный testnet)
-pytest tests/ -v -m e2e
+# Форматирование
+gofmt -w .
 ```
 
-### Маркеры pytest
+### Тесты
 
-- `unit` — быстрые тесты без внешних зависимостей (~240)
-- `integration` — тесты с mocked HTTP (~75)
-- `e2e` — тесты на реальном testnet
-- `vault` — vault-related тесты
+- Unit/integration — встроены в каждый пакет (`*_test.go`), HTTP-зависимости
+  мокаются через `httptest`.
+- Golden-векторы (`testdata/golden/`) — байт-в-байт сверка подписи EIP-712,
+  msgpack-payload и HD-деривации против официального HL SDK (оракул).
+- E2E на реальном testnet — отдельный ручной прогон (`exec`/`cancel`/`faucet`/
+  `vaults`/`risk`).
 
-### Risk Integration Tests
+### Линтер
 
-42 теста в 8 группах (Groups A-H по SPEC-005):
-
-| Группа | Описание |
-|--------|----------|
-| A, B | RiskManager MANUAL/MANAGED modes |
-| C | Storage integration |
-| D | TradeResultCollector |
-| E, F | CLI commands + exec --risk-level |
-| G | Precision & Rounding |
-| H | E2E Risk Lifecycle |
+Конфигурация в `.golangci.yml` (golangci-lint v2): стандартный набор линтеров,
+preset `std-error-handling` для идиоматичных `Close`/`Fprintf`, отключён ST1005
+(сообщения об ошибках сохранены byte-for-byte в паритете с Python).
 
 ## Архитектура
 

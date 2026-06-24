@@ -6,53 +6,50 @@ hyperhandler — CLI-сервис для автоматизации торгов
 
 ## Tech Stack
 
-- Python 3.11+
-- Typer (CLI)
-- httpx (async HTTP)
-- Pydantic (validation)
-- Rich (output)
-- SQLite (storage)
-- eth-account (signing)
+Go-реализация (порт с Python, SPEC-007). Паритет поведения подтверждён golden-векторами.
+
+- Go 1.25+
+- cobra (CLI)
+- net/http (синхронный клиент с retry)
+- shopspring/decimal (точные вычисления, DivisionPrecision=28)
+- modernc.org/sqlite (pure-Go SQLite, статический бинарь без cgo)
+- go-ethereum/crypto + tyler-smith/go-bip39 (EIP-712 подпись, HD-кошелёк)
+
+> Python-исходники остаются в `src/` как референс на время миграции; рабочая
+> реализация — Go.
 
 ## Project Structure
 
 ```
-src/hyperhandler/
-├── cli.py              # CLI commands
-├── config.py           # Configuration
-├── signer.py           # EIP-712 signing
-├── storage.py          # SQLite storage
-├── models/             # Pydantic models
-│   ├── signal.py       # TradingSignal
-│   ├── order.py        # OrderResult, Position
-│   ├── vault.py        # VaultInfo
-│   ├── validator.py    # SignalValidator
-│   └── risk.py         # RiskLevel, TradeOrder, TradeResult
-├── client/             # API clients
-│   ├── base.py         # BaseClient with retry
-│   ├── info.py         # Info API
-│   ├── exchange.py     # Exchange API
-│   ├── vault.py        # Vault API
-│   └── order_builder.py
-├── risk/               # Risk Management
-│   ├── manager.py      # RiskManager
-│   ├── calculator.py   # ATR, position sizing
-│   ├── circuit_breaker.py
-│   ├── collector.py    # TradeResultCollector
-│   └── config.py       # RiskProfile
-└── wallet/             # Key management
-    ├── manager.py
-    └── providers/      # Env, Keyring, Prompt
+cmd/hyperhandler/main.go   # entrypoint (version ldflag → cli.Execute)
+internal/
+├── cli/                # cobra-команды (тонкий слой) + table/ANSI-рендер
+├── service/            # оркестрация: ParseSignal, Executor.Exec, Cancel, Risk*
+├── models/             # signal, order, vault, validator, risk
+├── risk/               # manager, calculator, circuit_breaker, collector, config
+├── client/             # base, info, exchange, vault, order_builder
+├── wallet/             # manager + провайдеры env/keyring/hd/prompt
+├── signer/             # EIP-712 подпись (msgpack action hash)
+├── storage/            # SQLite (modernc.org/sqlite)
+├── config/             # YAML + HL_-env
+├── decimalx/           # decimal-хелперы
+└── golden/             # загрузчик golden-векторов
+testdata/golden/        # эталонные векторы (оракул — официальный HL SDK)
 ```
 
 ## Commands
 
 ```bash
-# Install
-pip install -e ".[dev]"
+# Build (статический бинарь в ./bin/)
+make build
 
-# Run tests
-pytest tests/ -v
+# Run tests / coverage / lint
+make test
+make cover
+make lint            # golangci-lint (.golangci.yml)
+
+# Cross-compile релизных бинарей в ./dist/
+make release
 
 # CLI
 hyperhandler --help
@@ -86,6 +83,7 @@ After code changes, update:
 
 ### Testing
 
-- Run `pytest tests/ -v` before committing
-- Unit tests in `tests/unit/`
-- Integration tests in `tests/integration/`
+- Run `make test` (`go test ./... -count=1`) before committing
+- One `*_test.go` per package; HTTP mocked via `net/http/httptest`
+- Golden-векторы (`testdata/golden/`) — байт-в-байт сверка подписи/payload/HD
+- `make lint` должен быть чистым (golangci-lint)

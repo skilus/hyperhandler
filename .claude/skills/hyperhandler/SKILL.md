@@ -30,33 +30,23 @@ argument-hint: [command] [options]
 
 ## Структура проекта
 
+Go-реализация (порт с Python, SPEC-007; паритет подтверждён golden-векторами).
+
 ```
-src/hyperhandler/
-├── cli.py              # Typer CLI commands
-├── config.py           # YAML + env configuration
-├── signer.py           # EIP-712 request signing
-├── storage.py          # SQLite history storage
-├── models/             # Pydantic models
-│   ├── signal.py       # TradingSignal, SignalHorizon
-│   ├── order.py        # OrderResult, Position
-│   ├── vault.py        # VaultInfo
-│   ├── validator.py    # SignalValidator
-│   └── risk.py         # RiskLevel, TradeOrder, TradeResult
-├── client/             # API clients
-│   ├── base.py         # BaseClient with retry
-│   ├── info.py         # Public data + candles, funding
-│   ├── exchange.py     # Trading operations
-│   ├── vault.py        # Vault operations
-│   └── order_builder.py
-├── risk/               # Risk Management module
-│   ├── manager.py      # RiskManager (main entry)
-│   ├── calculator.py   # ATR, position sizing, leverage
-│   ├── circuit_breaker.py  # Consecutive losses, daily limit
-│   ├── collector.py    # TradeResultCollector
-│   └── config.py       # RiskProfile, HLConfig
-└── wallet/             # Key management
-    ├── manager.py      # WalletManager
-    └── providers/      # Env, Keyring, Prompt, HD
+cmd/hyperhandler/main.go   # entrypoint → cli.Execute
+internal/
+├── cli/                # cobra-команды (тонкий слой) + table/ANSI-рендер
+├── service/            # оркестрация: ParseSignal, Executor.Exec, Cancel, Risk*
+├── models/             # signal, order, vault, validator, risk
+├── risk/               # manager, calculator, circuit_breaker, collector, config
+├── client/             # base, info, exchange, vault, order_builder
+├── wallet/             # manager + провайдеры env/keyring/hd/prompt
+├── signer/             # EIP-712 подпись (msgpack action hash)
+├── storage/            # SQLite (modernc.org/sqlite, без cgo)
+├── config/             # YAML + HL_-env
+├── decimalx/           # decimal-хелперы (DivisionPrecision=28)
+└── golden/             # загрузчик golden-векторов
+testdata/golden/        # эталонные векторы (оракул — официальный HL SDK)
 ```
 
 ## Команды
@@ -199,7 +189,7 @@ hyperhandler faucet --network testnet
 
 ## Правила валидации сигнала
 
-### Базовые правила (Pydantic)
+### Базовые правила (NewTradingSignal)
 
 1. `entry_price` обязателен для `limit` ордеров
 2. Stop-loss должен быть ниже entry для long, выше для short
@@ -268,43 +258,26 @@ HL_TESTNET_PRIVATE_KEY=0x...    # Ключ для testnet
 ## Разработка
 
 ```bash
-# Установка с dev-зависимостями
-pip install -e ".[dev]"
+# Сборка статического бинаря в ./bin/
+make build
 
-# Запуск тестов
-pytest tests/ -v
+# Тесты / покрытие / линтер
+make test            # go test ./... -count=1
+make cover           # go test ./... -cover
+make lint            # golangci-lint (.golangci.yml)
 
-# Только unit тесты
-pytest tests/unit/ -v
-
-# Только integration тесты
-pytest tests/integration/ -v
-
-# E2E тесты (реальный testnet)
-pytest tests/ -v -m e2e
+# Кросс-компиляция релизных бинарей в ./dist/
+make release
 ```
 
-### Маркеры pytest
+### Тесты
 
-- `unit` — быстрые тесты без внешних зависимостей (~240)
-- `integration` — тесты с mocked HTTP (respx, ~75)
-- `e2e` — тесты на реальном testnet
-- `vault` — vault-related тесты
-
-### Risk Integration Tests (SPEC-005)
-
-42 теста в 8 группах:
-
-| Группа | Описание | Тестов |
-|--------|----------|--------|
-| A | RiskManager MANUAL mode | 7 |
-| B | RiskManager MANAGED mode | 8 |
-| C | Storage integration | 6 |
-| D | TradeResultCollector | 5 |
-| E | CLI risk commands | 4 |
-| F | exec with --risk-level | 5 |
-| G | Precision & Rounding | 5 |
-| H | E2E Risk Lifecycle | 2 |
+- Один `*_test.go` на пакет; HTTP мокается через `net/http/httptest`,
+  время — через инжектируемый `clock`.
+- Golden-векторы (`testdata/golden/`) — байт-в-байт сверка подписи EIP-712,
+  msgpack-payload и HD-деривации против официального HL SDK.
+- E2E на реальном testnet — отдельный ручной прогон
+  (`exec`/`cancel`/`faucet`/`vaults`/`risk`).
 
 ## Hyperliquid API
 
@@ -339,11 +312,11 @@ pytest tests/ -v -m e2e
 При работе с hyperhandler:
 
 1. **Изменения кода** — обновлять README.md, ARCHITECTURE.md и этот SKILL.md
-2. **Новые команды** — добавлять в cli.py и документацию
-3. **Новые модели** — добавлять в models/ с Pydantic валидацией
-4. **API клиенты** — наследовать от BaseClient (retry logic)
-5. **Тесты** — писать для каждого нового функционала
-6. **Версионирование** — обновлять версию в pyproject.toml и __init__.py (SemVer 2.0.0)
+2. **Новые команды** — добавлять в `internal/cli` (cobra) + оркестрацию в `internal/service`
+3. **Новые модели** — добавлять в `internal/models`
+4. **API клиенты** — встраивать `client.BaseClient` (retry logic)
+5. **Тесты** — `*_test.go` рядом с пакетом; `make lint` должен быть чистым
+6. **Версионирование** — `-ldflags "-X main.version=..."` (SemVer 2.0.0)
 7. **Коммиты** — без Co-Authored-By, с conventional commits (feat:, fix:, refactor:)
 
 ## Примеры использования
