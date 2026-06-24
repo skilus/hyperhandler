@@ -6,18 +6,21 @@
 # plain run never moves funds.
 #
 # Prereqs:
-#   - A funded testnet wallet key in HL_TESTNET_PRIVATE_KEY (the faucet step
-#     can fund a fresh address; allow a minute before placing orders).
+#   - A funded testnet wallet key in HL_TESTNET_PRIVATE_KEY (network-specific,
+#     preferred) or HL_PRIVATE_KEY (generic). The wallet env provider checks
+#     HL_TESTNET_PRIVATE_KEY first, then falls back to HL_PRIVATE_KEY. The faucet
+#     step can fund a fresh address; allow a minute before placing orders.
 #
 # Usage:
 #   HL_TESTNET_PRIVATE_KEY=0x... ./scripts/e2e-testnet.sh          # safe (read-only + dry-run)
+#   HL_PRIVATE_KEY=0x...         ./scripts/e2e-testnet.sh          # generic key also works
 #   HL_TESTNET_PRIVATE_KEY=0x... RUN_LIVE=1 ./scripts/e2e-testnet.sh  # also places + cancels a real order
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-if [[ -z "${HL_TESTNET_PRIVATE_KEY:-}" ]]; then
-  echo "error: set HL_TESTNET_PRIVATE_KEY to a testnet key" >&2
+if [[ -z "${HL_TESTNET_PRIVATE_KEY:-}" && -z "${HL_PRIVATE_KEY:-}" ]]; then
+  echo "error: set HL_TESTNET_PRIVATE_KEY (or HL_PRIVATE_KEY) to a testnet key" >&2
   exit 1
 fi
 
