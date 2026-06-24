@@ -221,7 +221,7 @@ func newPositionsCmd() *cobra.Command {
 			if vault != nil {
 				address = *vault
 			}
-			info := client.NewInfoClient(netCfg)
+			info := client.NewInfoClient(netCfg, clientOpts()...)
 			positions, err := info.GetPositions(context.Background(), address)
 			if err != nil {
 				return err
@@ -272,7 +272,7 @@ func newOrdersCmd() *cobra.Command {
 			if vault != nil {
 				address = *vault
 			}
-			info := client.NewInfoClient(netCfg)
+			info := client.NewInfoClient(netCfg, clientOpts()...)
 			orders, err := info.GetOpenOrders(context.Background(), address)
 			if err != nil {
 				return err
@@ -314,7 +314,7 @@ func newStatusCmd() *cobra.Command {
 				return err
 			}
 			ctx := context.Background()
-			info := client.NewInfoClient(netCfg)
+			info := client.NewInfoClient(netCfg, clientOpts()...)
 			margin, err := info.GetMarginSummary(ctx, sgn.Address())
 			if err != nil {
 				return err
@@ -370,7 +370,7 @@ func newCancelCmd() *cobra.Command {
 			if orderID != 0 {
 				req.OrderID = &orderID
 			}
-			count, err := service.CancelOrders(context.Background(), netCfg, sgn, req)
+			count, err := service.CancelOrders(context.Background(), netCfg, sgn, req, clientOpts()...)
 			if err != nil {
 				return err
 			}
@@ -408,7 +408,7 @@ func newFaucetCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			info := client.NewInfoClient(netCfg)
+			info := client.NewInfoClient(netCfg, clientOpts()...)
 			result, err := info.Faucet(context.Background(), sgn.Address())
 			if err != nil {
 				out("%s", red("Faucet request failed: "+err.Error()))

@@ -16,9 +16,12 @@ type TradingSettings struct {
 	RetryDelay      float64 `yaml:"retry_delay"`
 }
 
-// DefaultTradingSettings returns the Python field defaults.
+// DefaultTradingSettings returns the effective runtime defaults. DefaultSlippage
+// is 0.005 — the ExchangeClient/OrderBuilder default that was always the value
+// actually used for market orders (the Python config Field default of 0.01 was
+// parsed but never wired). MaxRetries/RetryDelay match the BaseClient defaults.
 func DefaultTradingSettings() TradingSettings {
-	return TradingSettings{DefaultSlippage: 0.01, MaxRetries: 3, RetryDelay: 1.0}
+	return TradingSettings{DefaultSlippage: 0.005, MaxRetries: 3, RetryDelay: 1.0}
 }
 
 // Settings is the resolved application configuration. It is built from the YAML

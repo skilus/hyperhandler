@@ -26,9 +26,10 @@ func RiskCheck(
 	signal *models.TradingSignal,
 	network string,
 	level models.RiskLevel,
+	opts ...client.Option,
 ) (*models.TradeOrder, *models.RiskReject, error) {
 	mgr := risk.NewManager(level, models.ModeManaged, nil)
-	info := client.NewInfoClient(netCfg)
+	info := client.NewInfoClient(netCfg, opts...)
 	tradeHistory, err := store.GetRecentTradeResults(network, 50)
 	if err != nil {
 		return nil, nil, err
@@ -58,8 +59,9 @@ func RiskStatus(
 	store *storage.Storage,
 	network string,
 	level models.RiskLevel,
+	opts ...client.Option,
 ) (*RiskStatusData, error) {
-	info := client.NewInfoClient(netCfg)
+	info := client.NewInfoClient(netCfg, opts...)
 
 	margin, err := info.GetMarginSummary(ctx, s.Address())
 	if err != nil {

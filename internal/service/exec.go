@@ -14,9 +14,10 @@ import (
 	"github.com/skilus/hyperhandler/internal/storage"
 )
 
-// execSlippage mirrors the ExchangeClient default slippage in exchange.py
-// (Decimal("0.005")); cli.py constructs the client without overriding it.
-var execSlippage = decimal.RequireFromString("0.005")
+// fallbackSlippage is the market-order slippage used where no trading config is
+// available (e.g. CancelOrders, which never prices a market order). Matches the
+// ExchangeClient/OrderBuilder default Decimal("0.005").
+var fallbackSlippage = decimal.RequireFromString("0.005")
 
 // ExecOutcome is the discriminated result of an exec run (SPEC-007 A.3).
 type ExecOutcome string
@@ -98,13 +99,18 @@ func (e *Executor) Exec(ctx context.Context, req ExecRequest) (*ExecResult, erro
 	}
 	mgr := risk.NewManager(level, mode, nil)
 
+	// Client tuning + market-order slippage from the trading config section.
+	trading := e.Config.Settings().Trading
+	opts := ClientOptions(trading)
+	slippage := Slippage(trading)
+
 	// Save the signal before evaluating (matches Python ordering).
 	signalID, err := e.Storage.SaveSignal(signal, req.Network, true, false)
 	if err != nil {
 		return nil, err
 	}
 
-	info := client.NewInfoClient(netCfg)
+	info := client.NewInfoClient(netCfg, opts...)
 	tradeHistory, err := e.Storage.GetRecentTradeResults(req.Network, 50)
 	if err != nil {
 		return nil, err
@@ -135,7 +141,7 @@ func (e *Executor) Exec(ctx context.Context, req ExecRequest) (*ExecResult, erro
 	}
 
 	// Execute on the exchange.
-	exch := client.NewExchangeClient(netCfg, e.Signer, execSlippage)
+	exch := client.NewExchangeClient(netCfg, e.Signer, slippage, opts...)
 
 	assetIndex, err := info.GetAssetIndex(ctx, signal.Pair)
 	if err != nil {

@@ -49,7 +49,7 @@ func newVaultsListCmd() *cobra.Command {
 				minAPR = &d
 			}
 			netCfg, _ := config.Network(network)
-			vc := client.NewVaultClient(netCfg, nil)
+			vc := client.NewVaultClient(netCfg, nil, clientOpts()...)
 			vaults, err := vc.ListVaults(context.Background(), minTVL, minAPR)
 			if err != nil {
 				return err
@@ -96,7 +96,7 @@ func newVaultsInfoCmd() *cobra.Command {
 				return err
 			}
 			netCfg, _ := config.Network(network)
-			vc := client.NewVaultClient(netCfg, nil)
+			vc := client.NewVaultClient(netCfg, nil, clientOpts()...)
 			details, err := vc.GetVaultDetails(context.Background(), args[0], "")
 			if err != nil {
 				out("%s", red("Error: "+err.Error()))
@@ -140,7 +140,7 @@ func newVaultsDepositCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			vc := client.NewVaultClient(netCfg, sgn)
+			vc := client.NewVaultClient(netCfg, sgn, clientOpts()...)
 			ok, err := vc.DepositToVault(context.Background(), vaultAddr, decimal.NewFromFloat(amount))
 			if err != nil {
 				out("%s", red("Error: "+err.Error()))
@@ -178,7 +178,7 @@ func newVaultsWithdrawCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			vc := client.NewVaultClient(netCfg, sgn)
+			vc := client.NewVaultClient(netCfg, sgn, clientOpts()...)
 			ok, err := vc.WithdrawFromVault(context.Background(), vaultAddr, decimal.NewFromFloat(shares))
 			if err != nil {
 				var lockErr *client.LockupPeriodError
@@ -220,7 +220,7 @@ func newVaultsMyPositionsCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			vc := client.NewVaultClient(netCfg, sgn)
+			vc := client.NewVaultClient(netCfg, sgn, clientOpts()...)
 			positions, err := vc.GetMyVaultPositions(context.Background(), sgn.Address())
 			if err != nil {
 				return err

@@ -466,6 +466,48 @@ func TestRiskCheckReject(t *testing.T) {
 	}
 }
 
+// --- trading config wiring (slippage + retry) --------------------------------
+
+func TestSlippageFromConfig(t *testing.T) {
+	got := Slippage(config.TradingSettings{DefaultSlippage: 0.02})
+	if !got.Equal(decimal.RequireFromString("0.02")) {
+		t.Errorf("Slippage = %s, want 0.02", got)
+	}
+}
+
+// TestClientOptionsRetryWired proves trading.max_retries flows through
+// ClientOptions into the constructed client: a 500-always server is hit exactly
+// (retries+1) times.
+func TestClientOptionsRetryWired(t *testing.T) {
+	for _, tc := range []struct{ retries, wantHits int }{{0, 1}, {2, 3}} {
+		t.Run(itoaT(tc.retries), func(t *testing.T) {
+			var hits int
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				hits++
+				w.WriteHeader(http.StatusInternalServerError)
+			}))
+			defer srv.Close()
+
+			// RetryDelay 0 keeps the test instant.
+			opts := ClientOptions(config.TradingSettings{MaxRetries: tc.retries, RetryDelay: 0})
+			info := client.NewInfoClient(config.NetworkConfig{Name: "test", APIURL: srv.URL}, opts...)
+			if _, err := info.GetAllMids(context.Background()); err == nil {
+				t.Fatal("expected error from 500 server")
+			}
+			if hits != tc.wantHits {
+				t.Errorf("server hit %d times, want %d (retries=%d)", hits, tc.wantHits, tc.retries)
+			}
+		})
+	}
+}
+
+func itoaT(n int) string {
+	if n == 0 {
+		return "0-retries"
+	}
+	return "2-retries"
+}
+
 // --- Executor.Exec validation failure (no network needed) --------------------
 
 func TestExecValidationFailure(t *testing.T) {

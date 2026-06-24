@@ -22,14 +22,15 @@ type CancelRequest struct {
 // CancelOrders cancels matching open orders for the account (vault when set,
 // else the signer). Returns the number cancelled. Mirrors cli.py:cancel
 // do_cancel (the filtering logic, lifted out of the CLI per A.1).
-func CancelOrders(ctx context.Context, netCfg config.NetworkConfig, s *signer.Signer, req CancelRequest) (int, error) {
+func CancelOrders(ctx context.Context, netCfg config.NetworkConfig, s *signer.Signer, req CancelRequest, opts ...client.Option) (int, error) {
 	address := s.Address()
 	if req.Vault != nil {
 		address = *req.Vault
 	}
 
-	info := client.NewInfoClient(netCfg)
-	exch := client.NewExchangeClient(netCfg, s, execSlippage)
+	// Slippage is irrelevant for cancellations (no market order is priced).
+	info := client.NewInfoClient(netCfg, opts...)
+	exch := client.NewExchangeClient(netCfg, s, fallbackSlippage, opts...)
 
 	orders, err := info.GetOpenOrders(ctx, address)
 	if err != nil {

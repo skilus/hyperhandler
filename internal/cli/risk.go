@@ -57,7 +57,7 @@ func newRiskCheckCmd() *cobra.Command {
 			}
 			defer store.Close()
 
-			order, reject, err := service.RiskCheck(context.Background(), netCfg, sgn, store, signal, network, level)
+			order, reject, err := service.RiskCheck(context.Background(), netCfg, sgn, store, signal, network, level, clientOpts()...)
 			if err != nil {
 				return err
 			}
@@ -112,7 +112,7 @@ func newRiskStatusCmd() *cobra.Command {
 			}
 			defer store.Close()
 
-			data, err := service.RiskStatus(context.Background(), netCfg, sgn, store, network, level)
+			data, err := service.RiskStatus(context.Background(), netCfg, sgn, store, network, level, clientOpts()...)
 			if err != nil {
 				return err
 			}

@@ -8,8 +8,22 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/skilus/hyperhandler/internal/client"
+	"github.com/skilus/hyperhandler/internal/config"
 	"github.com/skilus/hyperhandler/internal/models"
+	"github.com/skilus/hyperhandler/internal/service"
 )
+
+// clientOpts loads the trading-config tuning (retry budget + backoff) applied to
+// every HTTP client built by a command. On config-load error it returns nil, so
+// the clients fall back to their built-in defaults.
+func clientOpts() []client.Option {
+	cfg, err := config.Load("")
+	if err != nil {
+		return nil
+	}
+	return service.ClientOptions(cfg.Settings().Trading)
+}
 
 // optionalFlag returns a pointer to the flag's string value, or nil when the
 // flag was not set (empty), mirroring the Optional[str] = None defaults in the

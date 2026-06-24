@@ -14,8 +14,10 @@ func TestLoadMissingFileUsesDefaults(t *testing.T) {
 	if c.Network() != "mainnet" {
 		t.Errorf("Network() = %q, want mainnet", c.Network())
 	}
-	if got := c.Settings().Trading.DefaultSlippage; got != 0.01 {
-		t.Errorf("DefaultSlippage = %v, want 0.01", got)
+	// 0.005 is the effective ExchangeClient/OrderBuilder default (the value
+	// actually used for market orders).
+	if got := c.Settings().Trading.DefaultSlippage; got != 0.005 {
+		t.Errorf("DefaultSlippage = %v, want 0.005", got)
 	}
 }
 

@@ -258,9 +258,9 @@ hyperhandler faucet --network testnet
 network: mainnet
 
 trading:
-  default_slippage: 0.01
-  max_retries: 3
-  retry_delay: 1.0
+  default_slippage: 0.005   # проскальзывание market-ордеров
+  max_retries: 3            # ретраи HTTP-клиента (429/5xx/сеть)
+  retry_delay: 1.0          # базовая задержка бэкоффа, сек
 
 security:
   max_position_size_usd: 10000
