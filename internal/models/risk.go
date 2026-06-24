@@ -168,7 +168,11 @@ type TradeOrder struct {
 // TradeResult is a closed trade, used for circuit-breaker tracking. Mirrors
 // risk.py:TradeResult.
 type TradeResult struct {
-	ID          *int64
+	ID *int64
+	// FillID is the exchange fill identity ("oid_time") for reconciled fills,
+	// or nil for manual closes. The storage layer enforces UNIQUE(fill_id) so
+	// reconciliation is idempotent across restarts (SPEC-007 B.5).
+	FillID      *string
 	SignalID    *int64
 	Coin        string
 	Side        string

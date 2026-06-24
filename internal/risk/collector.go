@@ -26,9 +26,11 @@ type FillsProvider interface {
 }
 
 // Collector collects closed trade results for circuit-breaker tracking. Mirrors
-// collector.py:TradeResultCollector. The in-memory fill dedup mirrors the Python
-// behaviour; the UNIQUE-on-fill_id upsert is scheduled for Phase 5 (B.5). The
-// clock is injectable for deterministic tests.
+// collector.py:TradeResultCollector. The in-memory fill dedup avoids redundant
+// work within a session; it is backed by the storage layer's UNIQUE(fill_id)
+// constraint, which makes SaveTradeResult idempotent across restarts so a
+// re-collected fill never duplicates a row (SPEC-007 B.5). The clock is
+// injectable for deterministic tests.
 type Collector struct {
 	Storage TradeResultStore
 	Network string
@@ -126,7 +128,9 @@ func (c *Collector) CollectFromFills(
 			side = "long"
 		}
 
+		fid := fillID
 		result := models.TradeResult{
+			FillID:      &fid,
 			Coin:        fill.Coin,
 			Side:        side,
 			EntryPrice:  mustParseDec(entryPx),

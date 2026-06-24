@@ -6,7 +6,7 @@
 **Work Started:** 2026-06-24 15:00
 **Work Completed:** —
 
-> **Прогресс:** Фаза 0 ✅, Фаза 1 ✅ (signer/order/wallet-hd байт-в-байт против golden; decimal DivisionPrecision=28), Фаза 2 ✅ (модели signal/order/vault/risk + `NewTradingSignal`-фабрика, `SignalValidator`, `BuildOrderPayload`; +6 golden payload-векторов msgpack/action_hash байт-в-байт), Фаза 3 ✅ (sync `net/http` base-клиент с retry-бэкоффом без jitter и `context.Context`; типизированные ошибки `errors.As` с подстрочным HL-маппингом; info/exchange/vault на типизированных DTO; retry-идемпотентность `/exchange` подтверждена тестом — тот же подписанный body/nonce при ретрае, B.6; 22 теста через `httptest`). Фаза 4 ✅ (risk-модуль: `config`/`calculator`/`circuit_breaker`/`collector`/`manager` — чистое ядро `EvaluateSignalWithData`; инжектируемый clock; `round28` эмулирует Python decimal-контекст 28 sig-fig для ATR EMA; +golden-секция `risk.json` с эталонными значениями из Python RiskCalculator — ATR/stop/liq/leverage/sizing/cumulative/funding/round_down; 89% покрытие, go vet чист. Async-обёртка `evaluate_signal` (фетч данных) отложена в service-слой Phase 6, A.1). Дальше — Фаза 5 (storage + wallet).
+> **Прогресс:** Фаза 0 ✅, Фаза 1 ✅ (signer/order/wallet-hd байт-в-байт против golden; decimal DivisionPrecision=28), Фаза 2 ✅ (модели signal/order/vault/risk + `NewTradingSignal`-фабрика, `SignalValidator`, `BuildOrderPayload`; +6 golden payload-векторов msgpack/action_hash байт-в-байт), Фаза 3 ✅ (sync `net/http` base-клиент с retry-бэкоффом без jitter и `context.Context`; типизированные ошибки `errors.As` с подстрочным HL-маппингом; info/exchange/vault на типизированных DTO; retry-идемпотентность `/exchange` подтверждена тестом — тот же подписанный body/nonce при ретрае, B.6; 22 теста через `httptest`). Фаза 4 ✅ (risk-модуль: `config`/`calculator`/`circuit_breaker`/`collector`/`manager` — чистое ядро `EvaluateSignalWithData`; инжектируемый clock; `round28` эмулирует Python decimal-контекст 28 sig-fig для ATR EMA; +golden-секция `risk.json` с эталонными значениями из Python RiskCalculator — ATR/stop/liq/leverage/sizing/cumulative/funding/round_down; 89% покрытие, go vet чист. Async-обёртка `evaluate_signal` (фетч данных) отложена в service-слой Phase 6, A.1). Фаза 5 ✅ (storage на modernc.org/sqlite — чистая схема, Decimal→TEXT, типизир. записи, реализует `risk.TradeResultStore`, **UNIQUE `fill_id` + idempotent insert = B.5** с новым полем `models.TradeResult.FillID`, без синглтона; wallet — manager + провайдеры env/keyring/prompt/hd, `keyringBackend`-интерфейс для тестов через fake-backend, keys.go-порт utils.py; deps zalando/go-keyring + x/term + tyler-smith/go-bip39; покрытие 78.8%/76.9%, go vet чист). Дальше — Фаза 6 (CLI + service-слой).
 
 ---
 
@@ -186,9 +186,10 @@ hyperhandler/
 - Инжектируемый `now`/clock для детерминизма тестов.
 - Golden-значения расчётов из Python.
 
-### Фаза 5 — Storage + Wallet (1.5 дня, упрощено D4)
-- `storage` (modernc): чистая схема (clean cutover — без байт-совместимости старых БД). Decimal → TEXT `.String()`, ноль → `"0"`. **UNIQUE на `fill_id`** в `trade_results` + idempotent upsert (B.5).
-- `wallet/manager` + providers (env, keyring, prompt). Сервис-имена keyring можно задать заново.
+### Фаза 5 — Storage + Wallet ✅ (1.5 дня, упрощено D4)
+- `storage` (modernc.org/sqlite, pure-Go, no cgo): чистая схема (clean cutover — без байт-совместимости старых БД). Decimal → TEXT `.String()`, ноль → `"0"`. **UNIQUE на `fill_id`** в `trade_results` + idempotent insert (B.5): `SaveTradeResult` сначала ищет по `fill_id`, при наличии возвращает существующий id без вставки; NULL `fill_id` (ручные закрытия) всегда вставляются (SQLite считает NULL'ы различными под UNIQUE). `*sql.DB` с `SetMaxOpenConns(1)` (SQLite — один писатель). Типизир. записи `SignalRecord`/`OrderRecord`/`Stats` вместо dict. Реализует `risk.TradeResultStore`. БЕЗ синглтона `get_storage` (DI, D7).
+- `wallet/manager` + провайдеры env/keyring/prompt/hd (плоский пакет `internal/wallet`). `keyringBackend`-интерфейс делает keyring/HD тестируемыми (fake-backend в тестах). keyring через `github.com/zalando/go-keyring`, prompt через `golang.org/x/term`, mnemonic-генерация/валидация через `tyler-smith/go-bip39` (поверх замороженного `DeriveHDKey` из Фазы 1). `keys.go` — `NormalizePrivateKey`/`ValidatePrivateKey`/`MaskKey`/`DeriveAddress` (порт utils.py). Сервис-имена keyring заданы заново (`hyperhandler`, `hyperhandler-mnemonic`).
+- **Находка/решение Фазы 5:** `models.TradeResult` получил поле `FillID *string`; collector выставляет `FillID = "oid_time"` перед `SaveTradeResult` → in-memory дедуп теперь подкреплён персистентным UNIQUE (рестарт не дублирует строки и не искажает PnL circuit breaker'а). Storage/wallet — вне зоны заморозки (нет golden), поэтому без byte-compat; крипто-инварианты по-прежнему ловятся golden signer/HD. Покрытие storage 78.8% / wallet 76.9% (непокрыто — OS-зависимые osKeyring/`defaultReadPassword`/home-dir error). go vet+gofmt чисто.
 
 ### Фаза 6 — CLI + service-слой (2.5 дня)
 - Вынести оркестрацию (`exec`, `cancel`, `risk reset`) в `internal/service` (A.1); discriminated результаты (A.3).
@@ -222,7 +223,7 @@ hyperhandler/
 - [ ] Все golden-векторы (signer, msgpack, HD) проходят байт-в-байт.
 - [ ] Заморожённое ядро (🔴) не рефакторилось до прохождения golden.
 - [ ] Порт всех ~316 тестов на Go, зелёные.
-- [ ] Латентные баги исправлены и покрыты тестами: UNIQUE `fill_id` (дедуп при рестарте), retry-идемпотентность `/exchange`, реальный профиль в `risk status`.
+- [ ] Латентные баги исправлены и покрыты тестами: UNIQUE `fill_id` (дедуп при рестарте) ✅ (Фаза 5), retry-идемпотентность `/exchange` ✅ (Фаза 3), реальный профиль в `risk status` (Фаза 6).
 - [ ] Service-слой: CLI не содержит оркестрации/бизнес-логики.
 - [ ] e2e на testnet: exec/cancel/faucet/vaults/risk проходят против реального API.
 - [ ] Паритет CLI: все 24 команды, флаги, дефолты сети, env-binding совпадают с Python.
