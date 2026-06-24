@@ -6,7 +6,7 @@
 **Work Started:** 2026-06-24 15:00
 **Work Completed:** —
 
-> **Прогресс:** Фаза 0 ✅ (golden-генератор из офиц. SDK, каркас Go, Makefile+CI, гейт зелёный). Дальше — Фаза 1 (крипто-ядро).
+> **Прогресс:** Фаза 0 ✅, Фаза 1 ✅ (signer/order/wallet-hd байт-в-байт против golden; decimal DivisionPrecision=28). Дальше — Фаза 2 (модели и валидация).
 
 ---
 

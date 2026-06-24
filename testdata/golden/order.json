@@ -1,0 +1,198 @@
+{
+  "_comment": "Golden order-builder float-path vectors (FROZEN). slippage = _slippage_price; formatting = _format_price/_format_size.",
+  "slippage": [
+    {
+      "price": "67500",
+      "is_buy": true,
+      "sz_decimals": 3,
+      "is_spot": false,
+      "slippage": "0.005",
+      "result": "67838.0",
+      "formatted": "67838"
+    },
+    {
+      "price": "67500",
+      "is_buy": false,
+      "sz_decimals": 3,
+      "is_spot": false,
+      "slippage": "0.005",
+      "result": "67162.0",
+      "formatted": "67162"
+    },
+    {
+      "price": "1700.55",
+      "is_buy": true,
+      "sz_decimals": 2,
+      "is_spot": false,
+      "slippage": "0.005",
+      "result": "1709.1",
+      "formatted": "1709.1"
+    },
+    {
+      "price": "1700.55",
+      "is_buy": false,
+      "sz_decimals": 2,
+      "is_spot": false,
+      "slippage": "0.005",
+      "result": "1692.0",
+      "formatted": "1692"
+    },
+    {
+      "price": "0.123456",
+      "is_buy": true,
+      "sz_decimals": 0,
+      "is_spot": false,
+      "slippage": "0.005",
+      "result": "0.12407",
+      "formatted": "0.12407"
+    },
+    {
+      "price": "0.123456",
+      "is_buy": false,
+      "sz_decimals": 0,
+      "is_spot": false,
+      "slippage": "0.005",
+      "result": "0.12284",
+      "formatted": "0.12284"
+    },
+    {
+      "price": "2.675",
+      "is_buy": true,
+      "sz_decimals": 0,
+      "is_spot": false,
+      "slippage": "0.005",
+      "result": "2.6884",
+      "formatted": "2.6884"
+    },
+    {
+      "price": "2.675",
+      "is_buy": false,
+      "sz_decimals": 0,
+      "is_spot": false,
+      "slippage": "0.005",
+      "result": "2.6616",
+      "formatted": "2.6616"
+    },
+    {
+      "price": "123456.789",
+      "is_buy": true,
+      "sz_decimals": 1,
+      "is_spot": false,
+      "slippage": "0.005",
+      "result": "124070.0",
+      "formatted": "124070"
+    },
+    {
+      "price": "123456.789",
+      "is_buy": false,
+      "sz_decimals": 4,
+      "is_spot": false,
+      "slippage": "0.005",
+      "result": "122840.0",
+      "formatted": "122840"
+    },
+    {
+      "price": "9.99995",
+      "is_buy": true,
+      "sz_decimals": 0,
+      "is_spot": false,
+      "slippage": "0.005",
+      "result": "10.05",
+      "formatted": "10.05"
+    },
+    {
+      "price": "0.0000456789",
+      "is_buy": true,
+      "sz_decimals": 2,
+      "is_spot": true,
+      "slippage": "0.005",
+      "result": "0.000046",
+      "formatted": "0.000046"
+    },
+    {
+      "price": "31415.926",
+      "is_buy": false,
+      "sz_decimals": 2,
+      "is_spot": false,
+      "slippage": "0.005",
+      "result": "31259.0",
+      "formatted": "31259"
+    },
+    {
+      "price": "100000",
+      "is_buy": true,
+      "sz_decimals": 0,
+      "is_spot": false,
+      "slippage": "0.005",
+      "result": "100500.0",
+      "formatted": "100500"
+    }
+  ],
+  "formatting": [
+    {
+      "value": "1700",
+      "formatted_price": "1700",
+      "formatted_size": "1700"
+    },
+    {
+      "value": "1700.0",
+      "formatted_price": "1700",
+      "formatted_size": "1700"
+    },
+    {
+      "value": "1700.00000000",
+      "formatted_price": "1700",
+      "formatted_size": "1700"
+    },
+    {
+      "value": "0.1",
+      "formatted_price": "0.1",
+      "formatted_size": "0.1"
+    },
+    {
+      "value": "0.10000000",
+      "formatted_price": "0.1",
+      "formatted_size": "0.1"
+    },
+    {
+      "value": "1700.5",
+      "formatted_price": "1700.5",
+      "formatted_size": "1700.5"
+    },
+    {
+      "value": "0.123456789",
+      "formatted_price": "0.12345679",
+      "formatted_size": "0.12345679"
+    },
+    {
+      "value": "0.000000005",
+      "formatted_price": "0",
+      "formatted_size": "0"
+    },
+    {
+      "value": "100",
+      "formatted_price": "100",
+      "formatted_size": "100"
+    },
+    {
+      "value": "0",
+      "formatted_price": "0",
+      "formatted_size": "0"
+    },
+    {
+      "value": "63787.5",
+      "formatted_price": "63787.5",
+      "formatted_size": "63787.5"
+    },
+    {
+      "value": "71437.5",
+      "formatted_price": "71437.5",
+      "formatted_size": "71437.5"
+    },
+    {
+      "value": "12345.6789",
+      "formatted_price": "12345.6789",
+      "formatted_size": "12345.6789"
+    }
+  ]
+}

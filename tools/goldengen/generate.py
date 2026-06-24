@@ -16,12 +16,15 @@ All keys/mnemonics here are public test values. NO real secrets.
 from __future__ import annotations
 
 import json
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
 import msgpack
 from eth_account import Account
 from eth_utils import to_hex
+
+from hyperhandler.client.order_builder import OrderBuilder
 
 # Official Hyperliquid SDK — the oracle (D5).
 from hyperliquid.utils.signing import (
@@ -225,11 +228,84 @@ def build_hd_golden(count: int = 5) -> dict[str, Any]:
     }
 
 
+# Frozen float-path cases (SPEC-007 risk #1/#3). Prices chosen to exercise the
+# 5-significant-figure formatting and Python's half-to-even round() boundaries.
+SLIPPAGE_DEFAULT = Decimal("0.005")
+# (price, is_buy, sz_decimals, is_spot)
+SLIPPAGE_CASES: list[tuple[str, bool, int, bool]] = [
+    ("67500", True, 3, False),
+    ("67500", False, 3, False),
+    ("1700.55", True, 2, False),
+    ("1700.55", False, 2, False),
+    ("0.123456", True, 0, False),
+    ("0.123456", False, 0, False),
+    ("2.675", True, 0, False),     # classic half-to-even float boundary
+    ("2.675", False, 0, False),
+    ("123456.789", True, 1, False),
+    ("123456.789", False, 4, False),
+    ("9.99995", True, 0, False),   # rounds up across a 9-cascade at 5 sig figs
+    ("0.0000456789", True, 2, True),
+    ("31415.926", False, 2, False),
+    ("100000", True, 0, False),
+]
+
+FORMAT_CASES: list[str] = [
+    "1700",
+    "1700.0",
+    "1700.00000000",
+    "0.1",
+    "0.10000000",
+    "1700.5",
+    "0.123456789",     # quantized to 8 decimals
+    "0.000000005",     # rounds at the 8th decimal (half-up via quantize default)
+    "100",
+    "0",
+    "63787.5",
+    "71437.5",
+    "12345.6789",
+]
+
+
+def build_order_golden() -> dict[str, Any]:
+    builder = OrderBuilder(slippage=SLIPPAGE_DEFAULT)
+
+    slippage = []
+    for price, is_buy, sz_decimals, is_spot in SLIPPAGE_CASES:
+        result = builder._slippage_price(
+            Decimal(price), is_buy, sz_decimals, is_spot=is_spot
+        )
+        slippage.append({
+            "price": price,
+            "is_buy": is_buy,
+            "sz_decimals": sz_decimals,
+            "is_spot": is_spot,
+            "slippage": str(SLIPPAGE_DEFAULT),
+            "result": str(result),
+            "formatted": builder._format_price(result),
+        })
+
+    formatting = []
+    for value in FORMAT_CASES:
+        formatting.append({
+            "value": value,
+            "formatted_price": builder._format_price(Decimal(value)),
+            "formatted_size": builder._format_size(Decimal(value)),
+        })
+
+    return {
+        "_comment": "Golden order-builder float-path vectors (FROZEN). "
+                    "slippage = _slippage_price; formatting = _format_price/_format_size.",
+        "slippage": slippage,
+        "formatting": formatting,
+    }
+
+
 def main() -> None:
     GOLDEN_DIR.mkdir(parents=True, exist_ok=True)
 
     signer_golden = build_signer_golden()
     hd_golden = build_hd_golden()
+    order_golden = build_order_golden()
 
     (GOLDEN_DIR / "signer.json").write_text(
         json.dumps(signer_golden, indent=2, sort_keys=False) + "\n"
@@ -237,11 +313,17 @@ def main() -> None:
     (GOLDEN_DIR / "hd.json").write_text(
         json.dumps(hd_golden, indent=2, sort_keys=False) + "\n"
     )
+    (GOLDEN_DIR / "order.json").write_text(
+        json.dumps(order_golden, indent=2, sort_keys=False) + "\n"
+    )
 
     print(f"Wrote {len(signer_golden['vectors'])} signer vectors -> "
           f"{GOLDEN_DIR / 'signer.json'}")
     print(f"Wrote {len(hd_golden['accounts'])} HD vectors -> "
           f"{GOLDEN_DIR / 'hd.json'}")
+    print(f"Wrote {len(order_golden['slippage'])} slippage + "
+          f"{len(order_golden['formatting'])} formatting vectors -> "
+          f"{GOLDEN_DIR / 'order.json'}")
     print("All vectors cross-checked: official SDK == hyperhandler.signer ✓")
 
 

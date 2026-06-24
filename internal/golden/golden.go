@@ -91,3 +91,41 @@ func LoadHD() (*HDGolden, error) {
 	}
 	return &g, nil
 }
+
+// SlippageVector is one frozen float-path slippage case.
+type SlippageVector struct {
+	Price      string `json:"price"`
+	IsBuy      bool   `json:"is_buy"`
+	SzDecimals int    `json:"sz_decimals"`
+	IsSpot     bool   `json:"is_spot"`
+	Slippage   string `json:"slippage"`
+	Result     string `json:"result"`
+	Formatted  string `json:"formatted"`
+}
+
+// FormatVector is one price/size formatting case.
+type FormatVector struct {
+	Value          string `json:"value"`
+	FormattedPrice string `json:"formatted_price"`
+	FormattedSize  string `json:"formatted_size"`
+}
+
+// OrderGolden is the parsed order.json file.
+type OrderGolden struct {
+	Comment    string           `json:"_comment"`
+	Slippage   []SlippageVector `json:"slippage"`
+	Formatting []FormatVector   `json:"formatting"`
+}
+
+// LoadOrder reads and parses testdata/golden/order.json.
+func LoadOrder() (*OrderGolden, error) {
+	raw, err := os.ReadFile(filepath.Join(Dir(), "order.json"))
+	if err != nil {
+		return nil, err
+	}
+	var g OrderGolden
+	if err := json.Unmarshal(raw, &g); err != nil {
+		return nil, err
+	}
+	return &g, nil
+}
