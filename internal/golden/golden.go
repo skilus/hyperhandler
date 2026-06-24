@@ -110,11 +110,38 @@ type FormatVector struct {
 	FormattedSize  string `json:"formatted_size"`
 }
 
+// PayloadSignal is the signal recipe for a payload vector; the Go test rebuilds
+// it through models.NewTradingSignal.
+type PayloadSignal struct {
+	Pair       string  `json:"pair"`
+	Side       string  `json:"side"`
+	OrderType  string  `json:"order_type"`
+	Size       string  `json:"size"`
+	Leverage   int     `json:"leverage"`
+	EntryPrice *string `json:"entry_price"`
+	StopLoss   *string `json:"stop_loss"`
+	TakeProfit *string `json:"take_profit"`
+}
+
+// PayloadVector locks a full build_order_payload result (msgpack + action hash)
+// for a given signal recipe.
+type PayloadVector struct {
+	Label        string        `json:"label"`
+	Signal       PayloadSignal `json:"signal"`
+	AssetIndex   int           `json:"asset_index"`
+	CurrentPrice *string       `json:"current_price"`
+	SzDecimals   int           `json:"sz_decimals"`
+	Nonce        int64         `json:"nonce"`
+	MsgpackHex   string        `json:"msgpack_hex"`
+	ActionHash   string        `json:"action_hash"`
+}
+
 // OrderGolden is the parsed order.json file.
 type OrderGolden struct {
 	Comment    string           `json:"_comment"`
 	Slippage   []SlippageVector `json:"slippage"`
 	Formatting []FormatVector   `json:"formatting"`
+	Payloads   []PayloadVector  `json:"payloads"`
 }
 
 // LoadOrder reads and parses testdata/golden/order.json.

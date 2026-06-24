@@ -25,6 +25,7 @@ from eth_account import Account
 from eth_utils import to_hex
 
 from hyperhandler.client.order_builder import OrderBuilder
+from hyperhandler.models import OrderSide, OrderType, TradingSignal
 
 # Official Hyperliquid SDK — the oracle (D5).
 from hyperliquid.utils.signing import (
@@ -266,6 +267,94 @@ FORMAT_CASES: list[str] = [
 ]
 
 
+# Full signal -> order-payload cases. These lock the *assembly* (key order
+# a,b,p,s,r,t; entry + SL/TP legs; grouping) on top of the frozen float path.
+# Each is hashed by the official SDK oracle and rebuilt in Go from the same
+# signal recipe. nonce is fixed for determinism.
+PAYLOAD_NONCE = 1700000000000
+# (label, signal_kwargs, asset_index, current_price | None, sz_decimals)
+PAYLOAD_CASES: list[tuple[str, dict[str, Any], int, str | None, int]] = [
+    (
+        "limit_long_entry_only",
+        dict(pair="BTC", side=OrderSide.LONG, order_type=OrderType.LIMIT,
+             entry_price=Decimal("67500"), size=Decimal("0.1"), leverage=5),
+        0, None, 0,
+    ),
+    (
+        "limit_long_full_tpsl",
+        dict(pair="BTC", side=OrderSide.LONG, order_type=OrderType.LIMIT,
+             entry_price=Decimal("67500"), size=Decimal("0.1"),
+             stop_loss=Decimal("66000"), take_profit=Decimal("70000")),
+        0, None, 0,
+    ),
+    (
+        "limit_short_sl_only",
+        dict(pair="BTC", side=OrderSide.SHORT, order_type=OrderType.LIMIT,
+             entry_price=Decimal("67500"), size=Decimal("0.1"),
+             stop_loss=Decimal("69000")),
+        0, None, 0,
+    ),
+    (
+        "limit_long_tp_only",
+        dict(pair="BTC", side=OrderSide.LONG, order_type=OrderType.LIMIT,
+             entry_price=Decimal("67500"), size=Decimal("0.1"),
+             take_profit=Decimal("70000")),
+        0, None, 0,
+    ),
+    (
+        "market_long",
+        dict(pair="ETH", side=OrderSide.LONG, order_type=OrderType.MARKET,
+             size=Decimal("1.0"), leverage=10),
+        1, "3500", 0,
+    ),
+    (
+        "market_short",
+        dict(pair="ETH", side=OrderSide.SHORT, order_type=OrderType.MARKET,
+             size=Decimal("1.0")),
+        1, "3500", 0,
+    ),
+]
+
+
+def _payload_signal_json(kwargs: dict[str, Any]) -> dict[str, Any]:
+    """Serialize the signal recipe so the Go test can rebuild it."""
+    out: dict[str, Any] = {
+        "pair": kwargs["pair"],
+        "side": kwargs["side"].value,
+        "order_type": kwargs["order_type"].value,
+        "size": str(kwargs["size"]),
+        "leverage": kwargs.get("leverage", 5),
+    }
+    for opt in ("entry_price", "stop_loss", "take_profit"):
+        out[opt] = str(kwargs[opt]) if kwargs.get(opt) is not None else None
+    return out
+
+
+def build_payload_golden() -> list[dict[str, Any]]:
+    builder = OrderBuilder(slippage=SLIPPAGE_DEFAULT)
+    payloads = []
+    for label, kwargs, asset_index, current_price, sz_decimals in PAYLOAD_CASES:
+        signal = TradingSignal(**kwargs)
+        action = builder.build_order_payload(
+            signal,
+            asset_index=asset_index,
+            current_price=Decimal(current_price) if current_price else None,
+            sz_decimals=sz_decimals,
+        )
+        oracle_hash = hl_action_hash(action, None, PAYLOAD_NONCE, None)
+        payloads.append({
+            "label": label,
+            "signal": _payload_signal_json(kwargs),
+            "asset_index": asset_index,
+            "current_price": current_price,
+            "sz_decimals": sz_decimals,
+            "nonce": PAYLOAD_NONCE,
+            "msgpack_hex": msgpack.packb(action).hex(),
+            "action_hash": to_hex(oracle_hash),
+        })
+    return payloads
+
+
 def build_order_golden() -> dict[str, Any]:
     builder = OrderBuilder(slippage=SLIPPAGE_DEFAULT)
 
@@ -294,9 +383,11 @@ def build_order_golden() -> dict[str, Any]:
 
     return {
         "_comment": "Golden order-builder float-path vectors (FROZEN). "
-                    "slippage = _slippage_price; formatting = _format_price/_format_size.",
+                    "slippage = _slippage_price; formatting = _format_price/_format_size; "
+                    "payloads = build_order_payload msgpack/action_hash.",
         "slippage": slippage,
         "formatting": formatting,
+        "payloads": build_payload_golden(),
     }
 
 
@@ -322,7 +413,8 @@ def main() -> None:
     print(f"Wrote {len(hd_golden['accounts'])} HD vectors -> "
           f"{GOLDEN_DIR / 'hd.json'}")
     print(f"Wrote {len(order_golden['slippage'])} slippage + "
-          f"{len(order_golden['formatting'])} formatting vectors -> "
+          f"{len(order_golden['formatting'])} formatting + "
+          f"{len(order_golden['payloads'])} payload vectors -> "
           f"{GOLDEN_DIR / 'order.json'}")
     print("All vectors cross-checked: official SDK == hyperhandler.signer ✓")
 

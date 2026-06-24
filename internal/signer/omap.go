@@ -33,6 +33,20 @@ func (m *OrderedMap) Set(key string, val any) *OrderedMap {
 	return m
 }
 
+// Get returns the value for key and whether it was present. On duplicate keys it
+// returns the first match (insertion order).
+func (m *OrderedMap) Get(key string) (any, bool) {
+	for _, p := range m.pairs {
+		if p.key == key {
+			return p.val, true
+		}
+	}
+	return nil, false
+}
+
+// Len returns the number of key/value pairs.
+func (m *OrderedMap) Len() int { return len(m.pairs) }
+
 // EncodeMsgpack implements msgpack.CustomEncoder: a map header followed by each
 // key/value in insertion order.
 func (m *OrderedMap) EncodeMsgpack(enc *msgpack.Encoder) error {
