@@ -1,0 +1,930 @@
+{
+  "_comment": "Golden risk-calculator vectors (SPEC-007 Phase 4). MEDIUM profile + default HLConfig. Decimal values as strings, compared by value in Go.",
+  "profile": "medium",
+  "atr": [
+    {
+      "label": "two_candles",
+      "candles": [
+        {
+          "h": "102",
+          "l": "98",
+          "c": "101"
+        },
+        {
+          "h": "104",
+          "l": "99",
+          "c": "103"
+        }
+      ],
+      "period": 14,
+      "result": "5"
+    },
+    {
+      "label": "short_series_sma",
+      "candles": [
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "103",
+          "l": "97",
+          "c": "101"
+        },
+        {
+          "h": "105",
+          "l": "99",
+          "c": "102"
+        }
+      ],
+      "period": 14,
+      "result": "6"
+    },
+    {
+      "label": "consistent_tr_ema",
+      "candles": [
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        }
+      ],
+      "period": 14,
+      "result": "4.000000000000000000000000000"
+    },
+    {
+      "label": "sample_fixture",
+      "candles": [
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "103",
+          "l": "97",
+          "c": "101"
+        },
+        {
+          "h": "104",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "97",
+          "c": "101"
+        },
+        {
+          "h": "103",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "104",
+          "l": "97",
+          "c": "101"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "103",
+          "l": "97",
+          "c": "101"
+        },
+        {
+          "h": "104",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "97",
+          "c": "101"
+        },
+        {
+          "h": "103",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "104",
+          "l": "97",
+          "c": "101"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "103",
+          "l": "97",
+          "c": "101"
+        },
+        {
+          "h": "104",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "102",
+          "l": "97",
+          "c": "101"
+        },
+        {
+          "h": "103",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "104",
+          "l": "97",
+          "c": "101"
+        },
+        {
+          "h": "102",
+          "l": "98",
+          "c": "100"
+        },
+        {
+          "h": "103",
+          "l": "97",
+          "c": "101"
+        }
+      ],
+      "period": 14,
+      "result": "5.530258881864767782569190036"
+    }
+  ],
+  "stop_loss": [
+    {
+      "entry": "100",
+      "side": "long",
+      "atr": "5",
+      "horizon": "scalp",
+      "price": "93.9700",
+      "distance": "6.0300",
+      "distance_pct": "0.0603",
+      "atr_value": "5",
+      "atr_multiplier": "1.2"
+    },
+    {
+      "entry": "100",
+      "side": "long",
+      "atr": "5",
+      "horizon": "intraday",
+      "price": "92.4625",
+      "distance": "7.5375",
+      "distance_pct": "0.075375",
+      "atr_value": "5",
+      "atr_multiplier": "1.5"
+    },
+    {
+      "entry": "100",
+      "side": "long",
+      "atr": "5",
+      "horizon": "swing",
+      "price": "89.9500",
+      "distance": "10.0500",
+      "distance_pct": "0.1005",
+      "atr_value": "5",
+      "atr_multiplier": "2.0"
+    },
+    {
+      "entry": "100",
+      "side": "long",
+      "atr": "5",
+      "horizon": "position",
+      "price": "87.4375",
+      "distance": "12.5625",
+      "distance_pct": "0.125625",
+      "atr_value": "5",
+      "atr_multiplier": "2.5"
+    },
+    {
+      "entry": "100",
+      "side": "short",
+      "atr": "5",
+      "horizon": "intraday",
+      "price": "107.5375",
+      "distance": "7.5375",
+      "distance_pct": "0.075375",
+      "atr_value": "5",
+      "atr_multiplier": "1.5"
+    },
+    {
+      "entry": "50000",
+      "side": "long",
+      "atr": "1500",
+      "horizon": "swing",
+      "price": "46985.0000",
+      "distance": "3015.0000",
+      "distance_pct": "0.0603",
+      "atr_value": "1500",
+      "atr_multiplier": "2.0"
+    },
+    {
+      "entry": "100",
+      "side": "long",
+      "atr": "10",
+      "horizon": "intraday",
+      "price": "84.9250",
+      "distance": "15.0750",
+      "distance_pct": "0.15075",
+      "atr_value": "10",
+      "atr_multiplier": "1.5"
+    }
+  ],
+  "liquidation": [
+    {
+      "entry": "100",
+      "leverage": 5,
+      "side": "long",
+      "result": "80.500"
+    },
+    {
+      "entry": "100",
+      "leverage": 10,
+      "side": "long",
+      "result": "90.500"
+    },
+    {
+      "entry": "100",
+      "leverage": 20,
+      "side": "long",
+      "result": "95.500"
+    },
+    {
+      "entry": "100",
+      "leverage": 100,
+      "side": "long",
+      "result": "99.00"
+    },
+    {
+      "entry": "100",
+      "leverage": 10,
+      "side": "short",
+      "result": "109.500"
+    },
+    {
+      "entry": "50000",
+      "leverage": 10,
+      "side": "long",
+      "result": "45250.000"
+    }
+  ],
+  "validate_stop": [
+    {
+      "stop": "95",
+      "liq": "90",
+      "entry": "100",
+      "side": "long",
+      "valid": true
+    },
+    {
+      "stop": "89",
+      "liq": "90",
+      "entry": "100",
+      "side": "long",
+      "valid": false
+    },
+    {
+      "stop": "105",
+      "liq": "110",
+      "entry": "100",
+      "side": "short",
+      "valid": true
+    },
+    {
+      "stop": "111",
+      "liq": "110",
+      "entry": "100",
+      "side": "short",
+      "valid": false
+    },
+    {
+      "stop": "90.5",
+      "liq": "90",
+      "entry": "100",
+      "side": "long",
+      "valid": false
+    },
+    {
+      "stop": "93",
+      "liq": "90",
+      "entry": "100",
+      "side": "long",
+      "valid": true
+    }
+  ],
+  "select_leverage": [
+    {
+      "stop_distance_pct": "0.15",
+      "max_coin": 50,
+      "leverage": 4,
+      "max_safe": 4,
+      "max_coin_out": 50,
+      "max_config": 10,
+      "reason": "safe_for_stop"
+    },
+    {
+      "stop_distance_pct": "0.01",
+      "max_coin": 5,
+      "leverage": 5,
+      "max_safe": 66,
+      "max_coin_out": 5,
+      "max_config": 10,
+      "reason": "coin_max"
+    },
+    {
+      "stop_distance_pct": "0.01",
+      "max_coin": 50,
+      "leverage": 10,
+      "max_safe": 66,
+      "max_coin_out": 50,
+      "max_config": 10,
+      "reason": "config_max"
+    },
+    {
+      "stop_distance_pct": "0.5",
+      "max_coin": 50,
+      "leverage": 1,
+      "max_safe": 1,
+      "max_coin_out": 50,
+      "max_config": 10,
+      "reason": "safe_for_stop"
+    },
+    {
+      "stop_distance_pct": "0",
+      "max_coin": 50,
+      "leverage": 10,
+      "max_safe": 10,
+      "max_coin_out": 50,
+      "max_config": 10,
+      "reason": "safe_for_stop+config_max"
+    }
+  ],
+  "select_leverage_for_stop": [
+    {
+      "stop": "95",
+      "entry": "100",
+      "side": "long",
+      "max_coin": 50,
+      "leverage": 10,
+      "max_safe": 13,
+      "max_coin_out": 50,
+      "max_config": 10,
+      "reason": "adjusted_for_stop"
+    },
+    {
+      "stop": "105",
+      "entry": "100",
+      "side": "short",
+      "max_coin": 50,
+      "leverage": 10,
+      "max_safe": 13,
+      "max_coin_out": 50,
+      "max_config": 10,
+      "reason": "adjusted_for_stop"
+    },
+    {
+      "stop": "90",
+      "entry": "100",
+      "side": "long",
+      "max_coin": 3,
+      "leverage": 3,
+      "max_safe": 8,
+      "max_coin_out": 3,
+      "max_config": 10,
+      "reason": "adjusted_for_stop"
+    }
+  ],
+  "position_size": [
+    {
+      "label": "normal",
+      "input": {
+        "account_value": "10000",
+        "available_balance": "5000",
+        "entry_price": "100",
+        "stop_price": "95",
+        "leverage": 10,
+        "sz_decimals": 2
+      },
+      "is_reject": false,
+      "result": {
+        "size": "39.28",
+        "notional": "3928.00",
+        "margin_required": "392.800000000",
+        "risk_amount": "196.40",
+        "risk_pct": "0.01964",
+        "commission_estimate": "3.5352000"
+      }
+    },
+    {
+      "label": "margin_constrained",
+      "input": {
+        "account_value": "10000",
+        "available_balance": "100",
+        "entry_price": "100",
+        "stop_price": "95",
+        "leverage": 10,
+        "sz_decimals": 2
+      },
+      "is_reject": false,
+      "result": {
+        "size": "10.00",
+        "notional": "1000.00",
+        "margin_required": "100",
+        "risk_amount": "50.00",
+        "risk_pct": "0.005",
+        "commission_estimate": "0.9000000"
+      }
+    },
+    {
+      "label": "too_small",
+      "input": {
+        "account_value": "50",
+        "available_balance": "5",
+        "entry_price": "50000",
+        "stop_price": "45000",
+        "leverage": 2,
+        "sz_decimals": 5
+      },
+      "is_reject": true,
+      "reject_reason": "position_too_small"
+    },
+    {
+      "label": "zero_stop",
+      "input": {
+        "account_value": "10000",
+        "available_balance": "5000",
+        "entry_price": "100",
+        "stop_price": "100",
+        "leverage": 10,
+        "sz_decimals": 2
+      },
+      "is_reject": true,
+      "reject_reason": "atr_unavailable"
+    },
+    {
+      "label": "confidence_full",
+      "input": {
+        "account_value": "10000",
+        "available_balance": "5000",
+        "entry_price": "100",
+        "stop_price": "95",
+        "leverage": 10,
+        "sz_decimals": 2,
+        "confidence": 1.0
+      },
+      "is_reject": false,
+      "result": {
+        "size": "39.28",
+        "notional": "3928.00",
+        "margin_required": "392.800000000",
+        "risk_amount": "196.40",
+        "risk_pct": "0.01964",
+        "commission_estimate": "3.5352000"
+      }
+    },
+    {
+      "label": "confidence_half",
+      "input": {
+        "account_value": "10000",
+        "available_balance": "5000",
+        "entry_price": "100",
+        "stop_price": "95",
+        "leverage": 10,
+        "sz_decimals": 2,
+        "confidence": 0.5
+      },
+      "is_reject": false,
+      "result": {
+        "size": "19.64",
+        "notional": "1964.00",
+        "margin_required": "196.400000000",
+        "risk_amount": "98.20",
+        "risk_pct": "0.00982",
+        "commission_estimate": "1.7676000"
+      }
+    },
+    {
+      "label": "confidence_clamped_low",
+      "input": {
+        "account_value": "10000",
+        "available_balance": "5000",
+        "entry_price": "100",
+        "stop_price": "95",
+        "leverage": 10,
+        "sz_decimals": 2,
+        "confidence": 0.1
+      },
+      "is_reject": false,
+      "result": {
+        "size": "11.78",
+        "notional": "1178.00",
+        "margin_required": "117.840000000",
+        "risk_amount": "58.90",
+        "risk_pct": "0.00589",
+        "commission_estimate": "1.0602000"
+      }
+    },
+    {
+      "label": "risk_multiplier_half",
+      "input": {
+        "account_value": "10000",
+        "available_balance": "5000",
+        "entry_price": "100",
+        "stop_price": "95",
+        "leverage": 10,
+        "sz_decimals": 2,
+        "risk_multiplier": "0.5"
+      },
+      "is_reject": false,
+      "result": {
+        "size": "19.64",
+        "notional": "1964.00",
+        "margin_required": "196.400000000",
+        "risk_amount": "98.20",
+        "risk_pct": "0.00982",
+        "commission_estimate": "1.7676000"
+      }
+    },
+    {
+      "label": "max_risk_budget",
+      "input": {
+        "account_value": "10000",
+        "available_balance": "5000",
+        "entry_price": "100",
+        "stop_price": "95",
+        "leverage": 10,
+        "sz_decimals": 2,
+        "max_risk_amount": "50"
+      },
+      "is_reject": false,
+      "result": {
+        "size": "9.82",
+        "notional": "982.00",
+        "margin_required": "98.20000",
+        "risk_amount": "49.10",
+        "risk_pct": "0.00491",
+        "commission_estimate": "0.8838000"
+      }
+    },
+    {
+      "label": "rounding_3dp",
+      "input": {
+        "account_value": "10000",
+        "available_balance": "5000",
+        "entry_price": "100",
+        "stop_price": "95",
+        "leverage": 10,
+        "sz_decimals": 3
+      },
+      "is_reject": false,
+      "result": {
+        "size": "39.280",
+        "notional": "3928.000",
+        "margin_required": "392.800000000",
+        "risk_amount": "196.400",
+        "risk_pct": "0.01964",
+        "commission_estimate": "3.53520000"
+      }
+    }
+  ],
+  "cumulative_risk": [
+    {
+      "label": "single_btc",
+      "positions": [
+        {
+          "coin": "BTC",
+          "risk_amount": "500"
+        }
+      ],
+      "new_risk_amount": "0",
+      "new_coin": "BTC",
+      "account_value": "10000",
+      "raw_risk": "500",
+      "adjusted_risk": "500",
+      "risk_pct": "0.05",
+      "available_budget": "100.00",
+      "within_limit": true,
+      "correlation_groups": {
+        "btc-major": [
+          "BTC"
+        ]
+      }
+    },
+    {
+      "label": "correlated_btc_eth",
+      "positions": [
+        {
+          "coin": "BTC",
+          "risk_amount": "100"
+        },
+        {
+          "coin": "ETH",
+          "risk_amount": "100"
+        }
+      ],
+      "new_risk_amount": "0",
+      "new_coin": "SOL",
+      "account_value": "10000",
+      "raw_risk": "200",
+      "adjusted_risk": "280.0",
+      "risk_pct": "0.028",
+      "available_budget": "320.00",
+      "within_limit": true,
+      "correlation_groups": {
+        "btc-major": [
+          "BTC",
+          "ETH"
+        ]
+      }
+    },
+    {
+      "label": "independent_doge_aave",
+      "positions": [
+        {
+          "coin": "DOGE",
+          "risk_amount": "50"
+        }
+      ],
+      "new_risk_amount": "50",
+      "new_coin": "AAVE",
+      "account_value": "10000",
+      "raw_risk": "100",
+      "adjusted_risk": "100",
+      "risk_pct": "0.01",
+      "available_budget": "550.00",
+      "within_limit": true,
+      "correlation_groups": {
+        "meme": [
+          "DOGE"
+        ],
+        "defi": [
+          "AAVE"
+        ]
+      }
+    },
+    {
+      "label": "exceeds_limit",
+      "positions": [
+        {
+          "coin": "BTC",
+          "risk_amount": "500"
+        }
+      ],
+      "new_risk_amount": "500",
+      "new_coin": "ETH",
+      "account_value": "10000",
+      "raw_risk": "1000",
+      "adjusted_risk": "1200.0",
+      "risk_pct": "0.12",
+      "available_budget": "0",
+      "within_limit": false,
+      "correlation_groups": {
+        "btc-major": [
+          "BTC",
+          "ETH"
+        ]
+      }
+    },
+    {
+      "label": "empty_budget",
+      "positions": [],
+      "new_risk_amount": "0",
+      "new_coin": "BTC",
+      "account_value": "10000",
+      "raw_risk": "0",
+      "adjusted_risk": "0",
+      "risk_pct": "0",
+      "available_budget": "600.00",
+      "within_limit": true,
+      "correlation_groups": {}
+    },
+    {
+      "label": "three_correlated",
+      "positions": [
+        {
+          "coin": "SOL",
+          "risk_amount": "100"
+        },
+        {
+          "coin": "AVAX",
+          "risk_amount": "100"
+        },
+        {
+          "coin": "SUI",
+          "risk_amount": "100"
+        }
+      ],
+      "new_risk_amount": "0",
+      "new_coin": "APT",
+      "account_value": "10000",
+      "raw_risk": "300",
+      "adjusted_risk": "510.0",
+      "risk_pct": "0.051",
+      "available_budget": "90.00",
+      "within_limit": true,
+      "correlation_groups": {
+        "l1-alt": [
+          "SOL",
+          "AVAX",
+          "SUI"
+        ]
+      }
+    }
+  ],
+  "funding": [
+    {
+      "size": "1",
+      "entry": "50000",
+      "side": "long",
+      "funding_rate": "0.0001",
+      "risk_amount": "500",
+      "hold_hours": 24,
+      "hourly_rate": "0.0001",
+      "hourly_cost": "5.0000",
+      "hourly_income": "0",
+      "projected_24h": "120.0000",
+      "funding_eats_risk_pct": "0.2400"
+    },
+    {
+      "size": "1",
+      "entry": "50000",
+      "side": "short",
+      "funding_rate": "0.0001",
+      "risk_amount": "500",
+      "hold_hours": 24,
+      "hourly_rate": "0.0001",
+      "hourly_cost": "0",
+      "hourly_income": "5.0000",
+      "projected_24h": "-120.0000",
+      "funding_eats_risk_pct": "0"
+    },
+    {
+      "size": "1",
+      "entry": "50000",
+      "side": "long",
+      "funding_rate": "0.001",
+      "risk_amount": "500",
+      "hold_hours": 24,
+      "hourly_rate": "0.001",
+      "hourly_cost": "50.000",
+      "hourly_income": "0",
+      "projected_24h": "1200.000",
+      "funding_eats_risk_pct": "2.400"
+    },
+    {
+      "size": "2",
+      "entry": "3000",
+      "side": "short",
+      "funding_rate": "0.0002",
+      "risk_amount": "300",
+      "hold_hours": 8,
+      "hourly_rate": "0.0002",
+      "hourly_cost": "0",
+      "hourly_income": "1.2000",
+      "projected_24h": "-9.6000",
+      "funding_eats_risk_pct": "0"
+    }
+  ],
+  "round_down": [
+    {
+      "value": "1.999",
+      "decimals": 2,
+      "result": "1.99"
+    },
+    {
+      "value": "1.991",
+      "decimals": 2,
+      "result": "1.99"
+    },
+    {
+      "value": "9.99",
+      "decimals": 0,
+      "result": "9"
+    },
+    {
+      "value": "0.123456789",
+      "decimals": 8,
+      "result": "0.12345678"
+    },
+    {
+      "value": "0.000000005",
+      "decimals": 8,
+      "result": "0E-8"
+    },
+    {
+      "value": "1234.5678",
+      "decimals": 3,
+      "result": "1234.567"
+    },
+    {
+      "value": "100",
+      "decimals": 0,
+      "result": "100"
+    }
+  ]
+}

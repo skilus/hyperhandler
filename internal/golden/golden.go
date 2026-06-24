@@ -156,3 +156,166 @@ func LoadOrder() (*OrderGolden, error) {
 	}
 	return &g, nil
 }
+
+// RiskCandle is one {h,l,c} candle in a risk ATR vector.
+type RiskCandle struct {
+	H string `json:"h"`
+	L string `json:"l"`
+	C string `json:"c"`
+}
+
+// ATRVector locks one calculate_atr result.
+type ATRVector struct {
+	Label   string       `json:"label"`
+	Candles []RiskCandle `json:"candles"`
+	Period  int          `json:"period"`
+	Result  string       `json:"result"`
+}
+
+// StopLossVector locks one calculate_stop_loss result.
+type StopLossVector struct {
+	Entry         string `json:"entry"`
+	Side          string `json:"side"`
+	ATR           string `json:"atr"`
+	Horizon       string `json:"horizon"`
+	Price         string `json:"price"`
+	Distance      string `json:"distance"`
+	DistancePct   string `json:"distance_pct"`
+	ATRValue      string `json:"atr_value"`
+	ATRMultiplier string `json:"atr_multiplier"`
+}
+
+// LiquidationVector locks one estimate_liquidation_price result.
+type LiquidationVector struct {
+	Entry    string `json:"entry"`
+	Leverage int    `json:"leverage"`
+	Side     string `json:"side"`
+	Result   string `json:"result"`
+}
+
+// ValidateStopVector locks one validate_stop_vs_liquidation result.
+type ValidateStopVector struct {
+	Stop  string `json:"stop"`
+	Liq   string `json:"liq"`
+	Entry string `json:"entry"`
+	Side  string `json:"side"`
+	Valid bool   `json:"valid"`
+}
+
+// LeverageVector locks one select_leverage / select_leverage_for_stop result.
+type LeverageVector struct {
+	StopDistancePct string `json:"stop_distance_pct"`
+	Stop            string `json:"stop"`
+	Entry           string `json:"entry"`
+	Side            string `json:"side"`
+	MaxCoin         int    `json:"max_coin"`
+	Leverage        int    `json:"leverage"`
+	MaxSafe         int    `json:"max_safe"`
+	MaxCoinOut      int    `json:"max_coin_out"`
+	MaxConfig       int    `json:"max_config"`
+	Reason          string `json:"reason"`
+}
+
+// PositionSizeInputV is the recorded input for a position-size vector.
+type PositionSizeInputV struct {
+	AccountValue     string   `json:"account_value"`
+	AvailableBalance string   `json:"available_balance"`
+	EntryPrice       string   `json:"entry_price"`
+	StopPrice        string   `json:"stop_price"`
+	Leverage         int      `json:"leverage"`
+	SzDecimals       int      `json:"sz_decimals"`
+	Confidence       *float64 `json:"confidence"`
+	RiskMultiplier   *string  `json:"risk_multiplier"`
+	MaxRiskAmount    *string  `json:"max_risk_amount"`
+}
+
+// PositionSizeResultV is the recorded result for a position-size vector.
+type PositionSizeResultV struct {
+	Size               string `json:"size"`
+	Notional           string `json:"notional"`
+	MarginRequired     string `json:"margin_required"`
+	RiskAmount         string `json:"risk_amount"`
+	RiskPct            string `json:"risk_pct"`
+	CommissionEstimate string `json:"commission_estimate"`
+}
+
+// PositionSizeVector locks one calculate_position_size result or reject.
+type PositionSizeVector struct {
+	Label        string               `json:"label"`
+	Input        PositionSizeInputV   `json:"input"`
+	IsReject     bool                 `json:"is_reject"`
+	RejectReason string               `json:"reject_reason"`
+	Result       *PositionSizeResultV `json:"result"`
+}
+
+// CumRiskPositionV is one position in a cumulative-risk vector.
+type CumRiskPositionV struct {
+	Coin       string  `json:"coin"`
+	RiskAmount *string `json:"risk_amount"`
+}
+
+// CumulativeRiskVector locks one calculate_cumulative_risk result.
+type CumulativeRiskVector struct {
+	Label             string              `json:"label"`
+	Positions         []CumRiskPositionV  `json:"positions"`
+	NewRiskAmount     string              `json:"new_risk_amount"`
+	NewCoin           string              `json:"new_coin"`
+	AccountValue      string              `json:"account_value"`
+	RawRisk           string              `json:"raw_risk"`
+	AdjustedRisk      string              `json:"adjusted_risk"`
+	RiskPct           string              `json:"risk_pct"`
+	AvailableBudget   string              `json:"available_budget"`
+	WithinLimit       bool                `json:"within_limit"`
+	CorrelationGroups map[string][]string `json:"correlation_groups"`
+}
+
+// FundingVector locks one estimate_funding_cost result.
+type FundingVector struct {
+	Size               string `json:"size"`
+	Entry              string `json:"entry"`
+	Side               string `json:"side"`
+	FundingRate        string `json:"funding_rate"`
+	RiskAmount         string `json:"risk_amount"`
+	HoldHours          int    `json:"hold_hours"`
+	HourlyRate         string `json:"hourly_rate"`
+	HourlyCost         string `json:"hourly_cost"`
+	HourlyIncome       string `json:"hourly_income"`
+	Projected24h       string `json:"projected_24h"`
+	FundingEatsRiskPct string `json:"funding_eats_risk_pct"`
+}
+
+// RoundDownVector locks one _round_down result.
+type RoundDownVector struct {
+	Value    string `json:"value"`
+	Decimals int    `json:"decimals"`
+	Result   string `json:"result"`
+}
+
+// RiskGolden is the parsed risk.json file.
+type RiskGolden struct {
+	Comment               string                 `json:"_comment"`
+	Profile               string                 `json:"profile"`
+	ATR                   []ATRVector            `json:"atr"`
+	StopLoss              []StopLossVector       `json:"stop_loss"`
+	Liquidation           []LiquidationVector    `json:"liquidation"`
+	ValidateStop          []ValidateStopVector   `json:"validate_stop"`
+	SelectLeverage        []LeverageVector       `json:"select_leverage"`
+	SelectLeverageForStop []LeverageVector       `json:"select_leverage_for_stop"`
+	PositionSize          []PositionSizeVector   `json:"position_size"`
+	CumulativeRisk        []CumulativeRiskVector `json:"cumulative_risk"`
+	Funding               []FundingVector        `json:"funding"`
+	RoundDown             []RoundDownVector      `json:"round_down"`
+}
+
+// LoadRisk reads and parses testdata/golden/risk.json.
+func LoadRisk() (*RiskGolden, error) {
+	raw, err := os.ReadFile(filepath.Join(Dir(), "risk.json"))
+	if err != nil {
+		return nil, err
+	}
+	var g RiskGolden
+	if err := json.Unmarshal(raw, &g); err != nil {
+		return nil, err
+	}
+	return &g, nil
+}

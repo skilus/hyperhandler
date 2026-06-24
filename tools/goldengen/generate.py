@@ -26,6 +26,10 @@ from eth_utils import to_hex
 
 from hyperhandler.client.order_builder import OrderBuilder
 from hyperhandler.models import OrderSide, OrderType, TradingSignal
+from hyperhandler.models.order import Position
+from hyperhandler.models.risk import RiskLevel, RiskReject
+from hyperhandler.models.signal import SignalHorizon
+from hyperhandler.risk import HLConfig, RISK_PROFILES, RiskCalculator
 
 # Official Hyperliquid SDK — the oracle (D5).
 from hyperliquid.utils.signing import (
@@ -391,12 +395,322 @@ def build_order_golden() -> dict[str, Any]:
     }
 
 
+# ---------------------------------------------------------------------------
+# Risk calculator golden vectors (SPEC-007 Phase 4).
+#
+# Exact reference values for the Decimal-heavy risk math: ATR EMA (alpha=2/15),
+# stop-loss, liquidation, leverage selection, position sizing (incl. rejects),
+# cumulative risk (correlation penalty + cascade buffer), funding, round-down.
+# All computed with the MEDIUM profile + default HLConfig, matching the Go
+# risk.NewCalculator(GetProfile(RiskMedium), DefaultHLConfig()).
+# ---------------------------------------------------------------------------
+
+RISK_CALC = RiskCalculator(RISK_PROFILES[RiskLevel.MEDIUM], HLConfig())
+
+
+def _candle(h: str, l: str, c: str) -> dict[str, str]:
+    return {"h": h, "l": l, "c": c}
+
+
+def _consistent_candles(n: int) -> list[dict[str, str]]:
+    return [_candle("102", "98", "100") for _ in range(n)]
+
+
+def _sample_candles() -> list[dict[str, str]]:
+    """The 20-candle fixture from test_risk_calculator (string OHLC)."""
+    base = Decimal("100")
+    out = []
+    for i in range(20):
+        high = base + Decimal("2") + Decimal(str(i % 3))
+        low = base - Decimal("2") - Decimal(str(i % 2))
+        close = base + Decimal(str(i % 2))
+        out.append(_candle(str(high), str(low), str(close)))
+    return out
+
+
+ATR_CASES = [
+    ("two_candles", [_candle("102", "98", "101"), _candle("104", "99", "103")], 14),
+    ("short_series_sma", [
+        _candle("102", "98", "100"),
+        _candle("103", "97", "101"),
+        _candle("105", "99", "102"),
+    ], 14),
+    ("consistent_tr_ema", _consistent_candles(20), 14),
+    ("sample_fixture", _sample_candles(), 14),
+]
+
+# (entry, side, atr, horizon)
+STOP_LOSS_CASES = [
+    ("100", "long", "5", SignalHorizon.SCALP),
+    ("100", "long", "5", SignalHorizon.INTRADAY),
+    ("100", "long", "5", SignalHorizon.SWING),
+    ("100", "long", "5", SignalHorizon.POSITION),
+    ("100", "short", "5", SignalHorizon.INTRADAY),
+    ("50000", "long", "1500", SignalHorizon.SWING),
+    ("100", "long", "10", SignalHorizon.INTRADAY),
+]
+
+# (entry, leverage, side)
+LIQ_CASES = [
+    ("100", 5, "long"),
+    ("100", 10, "long"),
+    ("100", 20, "long"),
+    ("100", 100, "long"),
+    ("100", 10, "short"),
+    ("50000", 10, "long"),
+]
+
+# (stop, liq, entry, side)
+VALIDATE_STOP_CASES = [
+    ("95", "90", "100", "long"),
+    ("89", "90", "100", "long"),
+    ("105", "110", "100", "short"),
+    ("111", "110", "100", "short"),
+    ("90.5", "90", "100", "long"),
+    ("93", "90", "100", "long"),
+]
+
+# (stop_distance_pct, max_coin)
+SELECT_LEVERAGE_CASES = [
+    ("0.15", 50),
+    ("0.01", 5),
+    ("0.01", 50),
+    ("0.5", 50),
+    ("0", 50),
+]
+
+# (stop, entry, side, max_coin)
+SELECT_LEVERAGE_FOR_STOP_CASES = [
+    ("95", "100", "long", 50),
+    ("105", "100", "short", 50),
+    ("90", "100", "long", 3),
+]
+
+# (label, kwargs) for calculate_position_size
+POSITION_SIZE_CASES = [
+    ("normal", dict(account_value="10000", available_balance="5000",
+                    entry_price="100", stop_price="95", leverage=10, sz_decimals=2)),
+    ("margin_constrained", dict(account_value="10000", available_balance="100",
+                                entry_price="100", stop_price="95", leverage=10, sz_decimals=2)),
+    ("too_small", dict(account_value="50", available_balance="5",
+                       entry_price="50000", stop_price="45000", leverage=2, sz_decimals=5)),
+    ("zero_stop", dict(account_value="10000", available_balance="5000",
+                       entry_price="100", stop_price="100", leverage=10, sz_decimals=2)),
+    ("confidence_full", dict(account_value="10000", available_balance="5000",
+                             entry_price="100", stop_price="95", leverage=10, sz_decimals=2,
+                             confidence=1.0)),
+    ("confidence_half", dict(account_value="10000", available_balance="5000",
+                             entry_price="100", stop_price="95", leverage=10, sz_decimals=2,
+                             confidence=0.5)),
+    ("confidence_clamped_low", dict(account_value="10000", available_balance="5000",
+                                    entry_price="100", stop_price="95", leverage=10, sz_decimals=2,
+                                    confidence=0.1)),
+    ("risk_multiplier_half", dict(account_value="10000", available_balance="5000",
+                                  entry_price="100", stop_price="95", leverage=10, sz_decimals=2,
+                                  risk_multiplier="0.5")),
+    ("max_risk_budget", dict(account_value="10000", available_balance="5000",
+                             entry_price="100", stop_price="95", leverage=10, sz_decimals=2,
+                             max_risk_amount="50")),
+    ("rounding_3dp", dict(account_value="10000", available_balance="5000",
+                          entry_price="100", stop_price="95", leverage=10, sz_decimals=3)),
+]
+
+
+def _pos(coin: str, risk_amount: str | None, size: str = "1",
+         entry: str = "100") -> Position:
+    return Position(
+        coin=coin,
+        size=Decimal(size),
+        entry_price=Decimal(entry),
+        position_value=Decimal(size) * Decimal(entry),
+        unrealized_pnl=Decimal("0"),
+        leverage=10,
+        leverage_type="cross",
+        risk_amount=Decimal(risk_amount) if risk_amount is not None else None,
+    )
+
+
+# (label, positions, new_risk_amount, new_coin, account_value)
+CUMULATIVE_RISK_CASES = [
+    ("single_btc", [_pos("BTC", "500")], "0", "BTC", "10000"),
+    ("correlated_btc_eth", [_pos("BTC", "100"), _pos("ETH", "100")], "0", "SOL", "10000"),
+    ("independent_doge_aave", [_pos("DOGE", "50")], "50", "AAVE", "10000"),
+    ("exceeds_limit", [_pos("BTC", "500")], "500", "ETH", "10000"),
+    ("empty_budget", [], "0", "BTC", "10000"),
+    ("three_correlated", [_pos("SOL", "100"), _pos("AVAX", "100"), _pos("SUI", "100")],
+     "0", "APT", "10000"),
+]
+
+# (size, entry, side, funding_rate, risk_amount, hold_hours)
+FUNDING_CASES = [
+    ("1", "50000", "long", "0.0001", "500", 24),
+    ("1", "50000", "short", "0.0001", "500", 24),
+    ("1", "50000", "long", "0.001", "500", 24),
+    ("2", "3000", "short", "0.0002", "300", 8),
+]
+
+# (value, decimals)
+ROUND_DOWN_CASES = [
+    ("1.999", 2),
+    ("1.991", 2),
+    ("9.99", 0),
+    ("0.123456789", 8),
+    ("0.000000005", 8),
+    ("1234.5678", 3),
+    ("100", 0),
+]
+
+
+def build_risk_golden() -> dict[str, Any]:
+    atr = []
+    for label, candles, period in ATR_CASES:
+        atr.append({
+            "label": label,
+            "candles": candles,
+            "period": period,
+            "result": str(RISK_CALC.calculate_atr(candles, period)),
+        })
+
+    stop_loss = []
+    for entry, side, atr_val, horizon in STOP_LOSS_CASES:
+        r = RISK_CALC.calculate_stop_loss(
+            Decimal(entry), side, Decimal(atr_val), horizon
+        )
+        stop_loss.append({
+            "entry": entry, "side": side, "atr": atr_val, "horizon": horizon.value,
+            "price": str(r.price), "distance": str(r.distance),
+            "distance_pct": str(r.distance_pct), "atr_value": str(r.atr_value),
+            "atr_multiplier": str(r.atr_multiplier),
+        })
+
+    liquidation = []
+    for entry, leverage, side in LIQ_CASES:
+        liquidation.append({
+            "entry": entry, "leverage": leverage, "side": side,
+            "result": str(RISK_CALC.estimate_liquidation_price(
+                Decimal(entry), leverage, side)),
+        })
+
+    validate_stop = []
+    for stop, liq, entry, side in VALIDATE_STOP_CASES:
+        validate_stop.append({
+            "stop": stop, "liq": liq, "entry": entry, "side": side,
+            "valid": RISK_CALC.validate_stop_vs_liquidation(
+                Decimal(stop), Decimal(liq), Decimal(entry), side),
+        })
+
+    select_leverage = []
+    for spct, max_coin in SELECT_LEVERAGE_CASES:
+        r = RISK_CALC.select_leverage(Decimal(spct), max_coin)
+        select_leverage.append({
+            "stop_distance_pct": spct, "max_coin": max_coin,
+            "leverage": r.leverage, "max_safe": r.max_safe,
+            "max_coin_out": r.max_coin, "max_config": r.max_config, "reason": r.reason,
+        })
+
+    select_leverage_for_stop = []
+    for stop, entry, side, max_coin in SELECT_LEVERAGE_FOR_STOP_CASES:
+        r = RISK_CALC.select_leverage_for_stop(
+            Decimal(stop), Decimal(entry), side, max_coin)
+        select_leverage_for_stop.append({
+            "stop": stop, "entry": entry, "side": side, "max_coin": max_coin,
+            "leverage": r.leverage, "max_safe": r.max_safe,
+            "max_coin_out": r.max_coin, "max_config": r.max_config, "reason": r.reason,
+        })
+
+    position_size = []
+    for label, kwargs in POSITION_SIZE_CASES:
+        call = dict(
+            account_value=Decimal(kwargs["account_value"]),
+            available_balance=Decimal(kwargs["available_balance"]),
+            entry_price=Decimal(kwargs["entry_price"]),
+            stop_price=Decimal(kwargs["stop_price"]),
+            leverage=kwargs["leverage"],
+            sz_decimals=kwargs["sz_decimals"],
+        )
+        if "confidence" in kwargs:
+            call["confidence"] = kwargs["confidence"]
+        if "risk_multiplier" in kwargs:
+            call["risk_multiplier"] = Decimal(kwargs["risk_multiplier"])
+        if "max_risk_amount" in kwargs:
+            call["max_risk_amount"] = Decimal(kwargs["max_risk_amount"])
+        result = RISK_CALC.calculate_position_size(**call)
+        entry = {"label": label, "input": kwargs}
+        if isinstance(result, RiskReject):
+            entry["is_reject"] = True
+            entry["reject_reason"] = result.reason.value
+        else:
+            entry["is_reject"] = False
+            entry["result"] = {
+                "size": str(result.size), "notional": str(result.notional),
+                "margin_required": str(result.margin_required),
+                "risk_amount": str(result.risk_amount), "risk_pct": str(result.risk_pct),
+                "commission_estimate": str(result.commission_estimate),
+            }
+        position_size.append(entry)
+
+    cumulative_risk = []
+    for label, positions, new_risk, new_coin, account in CUMULATIVE_RISK_CASES:
+        r = RISK_CALC.calculate_cumulative_risk(
+            positions, Decimal(new_risk), new_coin, Decimal(account))
+        cumulative_risk.append({
+            "label": label,
+            "positions": [
+                {"coin": p.coin, "risk_amount": str(p.risk_amount)
+                 if p.risk_amount is not None else None}
+                for p in positions
+            ],
+            "new_risk_amount": new_risk, "new_coin": new_coin, "account_value": account,
+            "raw_risk": str(r.raw_risk), "adjusted_risk": str(r.adjusted_risk),
+            "risk_pct": str(r.risk_pct), "available_budget": str(r.available_budget),
+            "within_limit": r.within_limit,
+            "correlation_groups": r.correlation_groups,
+        })
+
+    funding = []
+    for size, entry, side, rate, risk, hold in FUNDING_CASES:
+        r = RISK_CALC.estimate_funding_cost(
+            Decimal(size), Decimal(entry), side, Decimal(rate), Decimal(risk), hold)
+        funding.append({
+            "size": size, "entry": entry, "side": side, "funding_rate": rate,
+            "risk_amount": risk, "hold_hours": hold,
+            "hourly_rate": str(r.hourly_rate), "hourly_cost": str(r.hourly_cost),
+            "hourly_income": str(r.hourly_income), "projected_24h": str(r.projected_24h),
+            "funding_eats_risk_pct": str(r.funding_eats_risk_pct),
+        })
+
+    round_down = []
+    for value, decimals in ROUND_DOWN_CASES:
+        round_down.append({
+            "value": value, "decimals": decimals,
+            "result": str(RISK_CALC._round_down(Decimal(value), decimals)),
+        })
+
+    return {
+        "_comment": "Golden risk-calculator vectors (SPEC-007 Phase 4). "
+                    "MEDIUM profile + default HLConfig. Decimal values as strings, "
+                    "compared by value in Go.",
+        "profile": "medium",
+        "atr": atr,
+        "stop_loss": stop_loss,
+        "liquidation": liquidation,
+        "validate_stop": validate_stop,
+        "select_leverage": select_leverage,
+        "select_leverage_for_stop": select_leverage_for_stop,
+        "position_size": position_size,
+        "cumulative_risk": cumulative_risk,
+        "funding": funding,
+        "round_down": round_down,
+    }
+
+
 def main() -> None:
     GOLDEN_DIR.mkdir(parents=True, exist_ok=True)
 
     signer_golden = build_signer_golden()
     hd_golden = build_hd_golden()
     order_golden = build_order_golden()
+    risk_golden = build_risk_golden()
 
     (GOLDEN_DIR / "signer.json").write_text(
         json.dumps(signer_golden, indent=2, sort_keys=False) + "\n"
@@ -407,6 +721,9 @@ def main() -> None:
     (GOLDEN_DIR / "order.json").write_text(
         json.dumps(order_golden, indent=2, sort_keys=False) + "\n"
     )
+    (GOLDEN_DIR / "risk.json").write_text(
+        json.dumps(risk_golden, indent=2, sort_keys=False) + "\n"
+    )
 
     print(f"Wrote {len(signer_golden['vectors'])} signer vectors -> "
           f"{GOLDEN_DIR / 'signer.json'}")
@@ -416,6 +733,10 @@ def main() -> None:
           f"{len(order_golden['formatting'])} formatting + "
           f"{len(order_golden['payloads'])} payload vectors -> "
           f"{GOLDEN_DIR / 'order.json'}")
+    print(f"Wrote {len(risk_golden['atr'])} atr + {len(risk_golden['position_size'])} "
+          f"position_size + {len(risk_golden['cumulative_risk'])} cumulative_risk "
+          f"(+ stop/liq/leverage/funding/round_down) risk vectors -> "
+          f"{GOLDEN_DIR / 'risk.json'}")
     print("All vectors cross-checked: official SDK == hyperhandler.signer ✓")
 
 
